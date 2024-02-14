@@ -1,0 +1,109 @@
+[gd_scene load_steps=7 format=3 uid="uid://5usetsdfbwf"]
+
+[ext_resource type="Texture2D" uid="uid://bi0ibph3kbhi1" path="res://Animations/Backgrounds/tilesets.png" id="1_3x57j"]
+[ext_resource type="Script" path="res://UpsideDownPipe/UpsideDownTileMap.gd" id="2_khxbh"]
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_7qout"]
+texture = ExtResource("1_3x57j")
+1:1/0 = 0
+1:1/0/physics_layer_0/linear_velocity = Vector2(0, 0)
+1:1/0/physics_layer_0/angular_velocity = 0.0
+1:1/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
+2:1/0 = 0
+2:1/0/physics_layer_0/linear_velocity = Vector2(0, 0)
+2:1/0/physics_layer_0/angular_velocity = 0.0
+2:1/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
+3:1/0 = 0
+3:1/0/physics_layer_0/linear_velocity = Vector2(0, 0)
+3:1/0/physics_layer_0/angular_velocity = 0.0
+3:1/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
+4:1/0 = 0
+4:1/0/physics_layer_0/linear_velocity = Vector2(0, 0)
+4:1/0/physics_layer_0/angular_velocity = 0.0
+4:1/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
+1:2/0 = 0
+1:2/0/physics_layer_0/linear_velocity = Vector2(0, 0)
+1:2/0/physics_layer_0/angular_velocity = 0.0
+1:2/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
+2:2/0 = 0
+2:2/0/physics_layer_0/linear_velocity = Vector2(0, 0)
+2:2/0/physics_layer_0/angular_velocity = 0.0
+3:2/0 = 0
+3:2/0/physics_layer_0/linear_velocity = Vector2(0, 0)
+3:2/0/physics_layer_0/angular_velocity = 0.0
+4:2/0 = 0
+4:2/0/physics_layer_0/linear_velocity = Vector2(0, 0)
+4:2/0/physics_layer_0/angular_velocity = 0.0
+4:2/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
+1:3/0 = 0
+1:3/0/physics_layer_0/linear_velocity = Vector2(0, 0)
+1:3/0/physics_layer_0/angular_velocity = 0.0
+2:3/0 = 0
+2:3/0/physics_layer_0/linear_velocity = Vector2(0, 0)
+2:3/0/physics_layer_0/angular_velocity = 0.0
+3:3/0 = 0
+3:3/0/physics_layer_0/linear_velocity = Vector2(0, 0)
+3:3/0/physics_layer_0/angular_velocity = 0.0
+4:3/0 = 0
+4:3/0/physics_layer_0/linear_velocity = Vector2(0, 0)
+4:3/0/physics_layer_0/angular_velocity = 0.0
+1:4/0 = 0
+1:4/0/physics_layer_0/linear_velocity = Vector2(0, 0)
+1:4/0/physics_layer_0/angular_velocity = 0.0
+2:4/0 = 0
+2:4/0/physics_layer_0/linear_velocity = Vector2(0, 0)
+2:4/0/physics_layer_0/angular_velocity = 0.0
+3:4/0 = 0
+3:4/0/physics_layer_0/linear_velocity = Vector2(0, 0)
+3:4/0/physics_layer_0/angular_velocity = 0.0
+4:4/0 = 0
+4:4/0/physics_layer_0/linear_velocity = Vector2(0, 0)
+4:4/0/physics_layer_0/angular_velocity = 0.0
+
+[sub_resource type="TileSet" id="TileSet_4feyl"]
+physics_layer_0/collision_layer = 1
+sources/2 = SubResource("TileSetAtlasSource_7qout")
+
+[sub_resource type="GDScript" id="GDScript_kpbky"]
+script/source = "extends Area2D
+
+func _process(delta):
+	#var collision_area = $CollisionShape2D  # Adjust node name as needed
+	position.x += 200 * delta  # Adjust the speed as needed
+	
+	if position.x > get_viewport_rect().size.x:
+		queue_free()  # Remove pipes when they are out of the screen
+		
+	#collision_area.connect(\"body_entered\", _on_area_entered)
+
+func _on_body_entered(body):
+	if body.is_in_group(\"Player\"):
+		queue_free()  # or handle collision as needed
+		restart_game()
+		
+func restart_game():
+	var new_scene_path = \"res://main.tscn\"
+	get_tree().change_scene_to_file(new_scene_path)
+"
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_dcqxs"]
+size = Vector2(128, 192)
+
+[node name="UpsideDownPipe" type="Node2D"]
+rotation = -3.14159
+
+[node name="TileMap" type="TileMap" parent="."]
+scale = Vector2(4, 4)
+tile_set = SubResource("TileSet_4feyl")
+format = 2
+layer_0/tile_data = PackedInt32Array(-1, 65538, 2, -65537, 65538, 2, -65536, 262146, 2, -131072, 262146, 2, -196608, 262146, 1, -131073, 65538, 1)
+script = ExtResource("2_khxbh")
+
+[node name="Area2D" type="Area2D" parent="."]
+script = SubResource("GDScript_kpbky")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D"]
+position = Vector2(4.57789e-06, -96)
+shape = SubResource("RectangleShape2D_dcqxs")
+
+[connection signal="body_entered" from="Area2D" to="Area2D" method="_on_body_entered"]
