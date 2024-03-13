@@ -1,11 +1,8 @@
-[gd_scene load_steps=8 format=3 uid="uid://byqhlcf3lamrj"]
+[gd_scene load_steps=9 format=3 uid="uid://byqhlcf3lamrj"]
 
 [ext_resource type="Texture2D" uid="uid://coofqpof7qcvn" path="res://Animations/Plankton/plankton.png" id="1_qp2xr"]
 [ext_resource type="Script" path="res://Plankton/Plankton.gd" id="1_qxkh8"]
-
-[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_fpvs4"]
-radius = 8.0
-height = 16.0
+[ext_resource type="Texture2D" uid="uid://cmrjgivlxq3o4" path="res://Animations/Lights/largeLight.png" id="3_fkfsd"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_4dlgd"]
 atlas = ExtResource("1_qp2xr")
@@ -39,14 +36,27 @@ animations = [{
 "speed": 1.0
 }]
 
-[node name="CharacterBody2D" type="CharacterBody2D"]
-scale = Vector2(4, 4)
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_fpvs4"]
+radius = 31.0
+height = 62.0
+
+[node name="Plankton" type="Area2D"]
 script = ExtResource("1_qxkh8")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-shape = SubResource("CapsuleShape2D_fpvs4")
-
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+scale = Vector2(4, 4)
 sprite_frames = SubResource("SpriteFrames_t83gx")
 animation = &"Idle"
-frame_progress = 0.965499
+frame_progress = 0.532351
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(-1, 0)
+shape = SubResource("CapsuleShape2D_fpvs4")
+
+[node name="Light" type="Node2D" parent="."]
+
+[node name="LightTexture" type="PointLight2D" parent="Light"]
+scale = Vector2(2, 2)
+texture = ExtResource("3_fkfsd")
+
+[connection signal="body_entered" from="." to="." method="_on_body_entered"]

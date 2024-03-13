@@ -7,7 +7,7 @@ func _ready():
 
 func _process(delta):
 	position.x -= 200 * delta
-	
+
 	if position.x < -get_viewport_rect().size.x - 500:
 		queue_free()  # Remove pipes when they are out of the screen
 		

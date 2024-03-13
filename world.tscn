@@ -65,7 +65,12 @@ sources/0 = SubResource("TileSetAtlasSource_svraa")
 y_sort_enabled = true
 script = ExtResource("1_b3hfs")
 
+[node name="CanvasModulate" type="CanvasModulate" parent="."]
+color = Color(0.0784314, 0.0588235, 0.352941, 1)
+
 [node name="pipe_spawn_timer" type="Timer" parent="."]
+
+[node name="plankton_spawn_timer" type="Timer" parent="."]
 
 [node name="BG" parent="." instance=ExtResource("2_tlkxw")]
 
@@ -73,7 +78,6 @@ script = ExtResource("1_b3hfs")
 position = Vector2(163, 336)
 
 [node name="TileMap" type="TileMap" parent="."]
-visible = false
 scale = Vector2(4, 4)
 tile_set = SubResource("TileSet_a122n")
 format = 2
@@ -86,4 +90,9 @@ layer_1/y_sort_origin = 0
 layer_1/z_index = 0
 layer_1/tile_data = PackedInt32Array()
 
-[connection signal="timeout" from="pipe_spawn_timer" to="." method="_on_pipe_spawn_timer_timeout"]
+[node name="ScoreDisplay" type="Label" parent="."]
+offset_left = 925.0
+offset_top = 45.0
+offset_right = 1112.0
+offset_bottom = 205.0
+theme_override_font_sizes/font_size = 150

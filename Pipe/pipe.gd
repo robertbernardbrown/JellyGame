@@ -3,7 +3,7 @@ extends Area2D
 func _process(delta):
 	position.x -= 200 * delta  # Adjust the speed as needed
 
-	if position.x < -get_viewport_rect().size.x - 300:
+	if position.x < -get_viewport_rect().size.x - 500:
 		queue_free()  # Remove pipes when they are out of the screen
 
 func _on_body_entered(body):

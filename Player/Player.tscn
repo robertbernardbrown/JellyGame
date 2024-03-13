@@ -1,7 +1,8 @@
-[gd_scene load_steps=35 format=3 uid="uid://xkt8ckcktuo0"]
+[gd_scene load_steps=36 format=3 uid="uid://xkt8ckcktuo0"]
 
 [ext_resource type="Script" path="res://Player/Player.gd" id="1_h0gt1"]
 [ext_resource type="Texture2D" uid="uid://dnet081mqcsbo" path="res://Animations/Player/jelly_animations-Sheet.png" id="2_6pggy"]
+[ext_resource type="Texture2D" uid="uid://cmrjgivlxq3o4" path="res://Animations/Lights/largeLight.png" id="3_e8lss"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_mi7ll"]
 radius = 42.0
@@ -254,10 +255,17 @@ animations = [{
 script = ExtResource("1_h0gt1")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." groups=["Player"]]
-position = Vector2(0, -2)
+position = Vector2(0, -4)
 shape = SubResource("CapsuleShape2D_mi7ll")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." groups=["Player"]]
+z_as_relative = false
 scale = Vector2(4, 4)
 sprite_frames = SubResource("SpriteFrames_lfp70")
 animation = &"Float"
+
+[node name="Light" type="Node2D" parent="."]
+
+[node name="LightTexture" type="PointLight2D" parent="Light"]
+scale = Vector2(8, 8)
+texture = ExtResource("3_e8lss")

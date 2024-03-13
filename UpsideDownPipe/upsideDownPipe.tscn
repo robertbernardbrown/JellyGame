@@ -71,7 +71,7 @@ func _process(delta):
 	#var collision_area = $CollisionShape2D  # Adjust node name as needed
 	position.x += 200 * delta  # Adjust the speed as needed
 	
-	if position.x > get_viewport_rect().size.x:
+	if position.x < -get_viewport_rect().size.x:
 		queue_free()  # Remove pipes when they are out of the screen
 		
 	#collision_area.connect(\"body_entered\", _on_area_entered)
@@ -103,7 +103,7 @@ script = ExtResource("2_khxbh")
 script = SubResource("GDScript_kpbky")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D"]
-position = Vector2(4.57789e-06, -96)
+position = Vector2(-0.000365448, -96.0001)
 shape = SubResource("RectangleShape2D_dcqxs")
 
 [connection signal="body_entered" from="Area2D" to="Area2D" method="_on_body_entered"]
