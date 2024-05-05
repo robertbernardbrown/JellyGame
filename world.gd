@@ -95,12 +95,12 @@ func spawn_pipe():
 		var pipe_instance = pipe_scene.instantiate() as Node2D
 		pipe_instance.scale = Vector2(1, random_length)
 		global_position = Vector2(spawn_x, get_viewport_rect().size.y - 75)
-		while will_collide(global_position):
-			print('sd2')
-			random_length = randf_range(1, 2)
-			pipe_instance.scale = Vector2(1, random_length)
-			#spawn_x += 2
-			global_position = Vector2(spawn_x, get_viewport_rect().size.y - 75)
+		#while will_collide(global_position):
+		#	print('sd2')
+		#	random_length = randf_range(1, 2)
+		#	pipe_instance.scale = Vector2(1, random_length)
+		#	#spawn_x += 2
+		#	global_position = Vector2(spawn_x, get_viewport_rect().size.y - 75)
 		spawn_pipe_instance = pipe_instance
 
 	add_child(spawn_pipe_instance)

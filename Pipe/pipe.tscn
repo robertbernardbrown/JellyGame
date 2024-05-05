@@ -1,8 +1,10 @@
-[gd_scene load_steps=7 format=3 uid="uid://w4g083b2ngpj"]
+[gd_scene load_steps=9 format=3 uid="uid://w4g083b2ngpj"]
 
 [ext_resource type="Script" path="res://Pipe/pipe.gd" id="1_bxx4o"]
 [ext_resource type="Texture2D" uid="uid://bi0ibph3kbhi1" path="res://Animations/Backgrounds/tilesets.png" id="1_yuojs"]
 [ext_resource type="Script" path="res://Pipe/TileMap.gd" id="2_4nm11"]
+[ext_resource type="PackedScene" uid="uid://b20unkctncs7u" path="res://Plants/Plants.tscn" id="4_uwe1t"]
+[ext_resource type="Script" path="res://Plants/Plants.gd" id="5_0yx50"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_7qout"]
 texture = ExtResource("1_yuojs")
@@ -83,5 +85,9 @@ script = ExtResource("1_bxx4o")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D"]
 position = Vector2(0, -96)
 shape = SubResource("RectangleShape2D_dcqxs")
+
+[node name="Plants" parent="." instance=ExtResource("4_uwe1t")]
+position = Vector2(-4, -216)
+script = ExtResource("5_0yx50")
 
 [connection signal="body_entered" from="Area2D" to="Area2D" method="_on_body_entered"]

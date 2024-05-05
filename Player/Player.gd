@@ -6,7 +6,11 @@ func _process(delta):
 	velocity.y += 400 * delta  # Apply gravity
 	position += velocity * delta
 	
+	if is_on_ceiling():
+		print('is on ceiling')
+	
 	if is_on_floor():
+		print('is on floor')
 		queue_free()
 		restart_game()
 	

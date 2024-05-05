@@ -57,6 +57,8 @@ shape = SubResource("CapsuleShape2D_fpvs4")
 
 [node name="LightTexture" type="PointLight2D" parent="Light"]
 scale = Vector2(2, 2)
+blend_mode = 2
+range_layer_min = -100
 texture = ExtResource("3_fkfsd")
 
 [connection signal="body_entered" from="." to="." method="_on_body_entered"]

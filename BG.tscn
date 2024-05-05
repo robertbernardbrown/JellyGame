@@ -67,8 +67,12 @@ sources/0 = SubResource("TileSetAtlasSource_tvxsv")
 [node name="BG" type="ParallaxBackground"]
 script = ExtResource("1_23pyq")
 
+[node name="CanvasModulate" type="CanvasModulate" parent="."]
+color = Color(0.168627, 0, 0.498039, 1)
+
 [node name="ParallaxLayer1" type="ParallaxLayer" parent="."]
-motion_mirroring = Vector2(1152, 0)
+scale = Vector2(2, 2)
+motion_mirroring = Vector2(2160, 0)
 
 [node name="Layer1" type="Sprite2D" parent="ParallaxLayer1"]
 position = Vector2(576, 324)
@@ -76,8 +80,9 @@ scale = Vector2(2.4, 2.4)
 texture = ExtResource("1_84usr")
 
 [node name="ParallaxLayer2" type="ParallaxLayer" parent="."]
+scale = Vector2(2, 2)
 motion_scale = Vector2(0.7, 1)
-motion_mirroring = Vector2(1152, 0)
+motion_mirroring = Vector2(2160, 0)
 
 [node name="Layer2" type="Sprite2D" parent="ParallaxLayer2"]
 position = Vector2(576, 324)
@@ -85,8 +90,9 @@ scale = Vector2(2.4, 2.4)
 texture = ExtResource("2_w8r74")
 
 [node name="ParallaxLayer3" type="ParallaxLayer" parent="."]
+scale = Vector2(2, 2)
 motion_scale = Vector2(0.4, 1)
-motion_mirroring = Vector2(1152, 0)
+motion_mirroring = Vector2(2160, 0)
 
 [node name="Layer3" type="Sprite2D" parent="ParallaxLayer3"]
 position = Vector2(575.5, 324)
@@ -94,8 +100,9 @@ scale = Vector2(2.40208, 2.4)
 texture = ExtResource("3_sqji2")
 
 [node name="ParallaxLayer4" type="ParallaxLayer" parent="."]
+scale = Vector2(2, 2)
 motion_scale = Vector2(0.2, 1)
-motion_mirroring = Vector2(1152, 0)
+motion_mirroring = Vector2(2160, 0)
 
 [node name="Layer4" type="Sprite2D" parent="ParallaxLayer4"]
 position = Vector2(577, 324)
@@ -103,8 +110,9 @@ scale = Vector2(2.4, 2.4)
 texture = ExtResource("5_7y4sd")
 
 [node name="ParallaxLayer5" type="ParallaxLayer" parent="."]
+scale = Vector2(2, 2)
 motion_scale = Vector2(0, 1)
-motion_mirroring = Vector2(1152, 0)
+motion_mirroring = Vector2(2160, 0)
 
 [node name="Layer5" type="Sprite2D" parent="ParallaxLayer5"]
 position = Vector2(575.5, 324)
@@ -112,8 +120,9 @@ scale = Vector2(2.40208, 2.4)
 texture = ExtResource("6_1g30r")
 
 [node name="ParallaxLayer6" type="ParallaxLayer" parent="."]
+scale = Vector2(2, 2)
 motion_scale = Vector2(2, 1)
-motion_mirroring = Vector2(1152, 0)
+motion_mirroring = Vector2(2160, 0)
 
 [node name="TileMap" type="TileMap" parent="ParallaxLayer6"]
 scale = Vector2(4, 4)

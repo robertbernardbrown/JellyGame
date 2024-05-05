@@ -252,6 +252,7 @@ animations = [{
 }]
 
 [node name="Player" type="CharacterBody2D" groups=["Player"]]
+floor_constant_speed = true
 script = ExtResource("1_h0gt1")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." groups=["Player"]]
@@ -268,4 +269,6 @@ animation = &"Float"
 
 [node name="LightTexture" type="PointLight2D" parent="Light"]
 scale = Vector2(8, 8)
+blend_mode = 2
+range_layer_min = -100
 texture = ExtResource("3_e8lss")
