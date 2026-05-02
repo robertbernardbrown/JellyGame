@@ -272,3 +272,5 @@ scale = Vector2(8, 8)
 blend_mode = 2
 range_layer_min = -100
 texture = ExtResource("3_e8lss")
+
+[node name="Camera2D" type="Camera2D" parent="."]

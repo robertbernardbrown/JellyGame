@@ -1,7 +1,17 @@
 extends Node2D
 
-const PIPE_SPAWN_INTERVAL = 3.0
+const WALL_SPAWN_INTERVAL = 3.0
 var PLANKTON_SPAWN_INTERVAL = 4.0
+
+const WALL_SCENE = preload("res://Walls/Wall.tscn")
+const PLANKTON_SCENE = preload("res://Plankton/Plankton.tscn")
+const SCORE_TRACKER_SCENE = preload("res://ScoreTracker/score_tracker.tscn")
+
+# Wall tiles are 16px at 4x scale = 64px each.
+# Viewport is 720px wide = ~11 tiles across.
+const EFFECTIVE_TILE_SIZE = 64.0
+const MIN_WALL_COLUMNS = 3
+const MAX_WALL_COLUMNS = 7
 
 func start_timer(spawn_interval, timer_func, one_shot):
 	var new_timer = Timer.new()
@@ -13,21 +23,14 @@ func start_timer(spawn_interval, timer_func, one_shot):
 	new_timer.start()
 
 func _ready():
-	start_timer(PIPE_SPAWN_INTERVAL, _on_PipeSpawnTimer_timeout, false)
+	start_timer(WALL_SPAWN_INTERVAL, _on_WallSpawnTimer_timeout, false)
 	start_timer(PLANKTON_SPAWN_INTERVAL, _on_PlanktonSpawnTimer_timeout, true)
-	var score_tracker = preload("res://ScoreTracker/score_tracker.tscn")
-	var score_tracker_instance = score_tracker.instantiate() as Node2D
+	var score_tracker_instance = SCORE_TRACKER_SCENE.instantiate() as Node2D
 	add_child(score_tracker_instance)
-	print_all_paths(self)
-	
-func print_all_paths(node):
-	print(node.get_path())
-	for child in node.get_children():
-		print_all_paths(child)
 
-func _on_PipeSpawnTimer_timeout():
-	spawn_pipe()
-	
+func _on_WallSpawnTimer_timeout():
+	spawn_wall()
+
 func _on_PlanktonSpawnTimer_timeout():
 	spawn_plankton()
 	PLANKTON_SPAWN_INTERVAL = randf_range(3, 4)
@@ -36,72 +39,86 @@ func _on_PlanktonSpawnTimer_timeout():
 	if not plankton_spawn_timer.is_connected('timeout', _on_PlanktonSpawnTimer_timeout):
 		plankton_spawn_timer.connect('timeout', _on_PlanktonSpawnTimer_timeout)
 	plankton_spawn_timer.start()
-	
-func get_random_spawn_position():
-	var spawn_x = get_viewport_rect().size.x - 300
-	var spawn_y = get_viewport_rect().size.y - randf_range(125, 600)
+
+func get_random_plankton_position():
+	var bounds = get_screen_bounds()
+	# Random X within the visible screen width, with some padding from edges
+	var padding = 80.0
+	var spawn_x = randf_range(bounds.left + padding, bounds.right - padding)
+	# Spawn above the visible area
+	var spawn_y = bounds.top - randf_range(100, 300)
 	return Vector2(spawn_x, spawn_y)
-	
+
 func spawn_plankton():
-	var plankton_scene = preload("res://Plankton/Plankton.tscn")
-	var plankton_instance = plankton_scene.instantiate() as Node2D
-	var spawn_position = get_random_spawn_position()
-	while will_collide(spawn_position):
-		spawn_position = get_random_spawn_position()
+	var plankton_instance = PLANKTON_SCENE.instantiate() as Node2D
+	var plankton_size = Vector2(64, 64)  # Approximate plankton bounds (16px sprite at 4x)
+	var spawn_position = get_random_plankton_position()
+	var attempts = 0
+	while overlaps_existing(spawn_position, plankton_size) and attempts < 10:
+		spawn_position = get_random_plankton_position()
+		attempts += 1
 	add_child(plankton_instance)
 	plankton_instance.global_position = spawn_position
 
-func will_collide(potential_position):
-	#var query_parameters = PhysicsPointQueryParameters2D.new()
-	var query_parameters = PhysicsShapeQueryParameters2D.new()
-	var circle_shape = CircleShape2D.new()
-	circle_shape.radius = 2
-	query_parameters.set_shape(circle_shape)
-	#query_parameters.position = potential_position
-	query_parameters.transform.origin = potential_position
-	query_parameters.collide_with_areas = true
-	query_parameters.collide_with_bodies = true
-	var results = get_world_2d().direct_space_state.intersect_shape(query_parameters)
-	for result in results:
-		print('true')
-		return true
-	print('false')
+# Buffer added around each entity so they don't spawn touching
+const SPAWN_BUFFER = 40.0
+
+func overlaps_existing(pos: Vector2, size: Vector2) -> bool:
+	var rect = Rect2(pos - size / 2.0, size).grow(SPAWN_BUFFER)
+	for child in get_children():
+		var child_rect = _get_entity_rect(child)
+		if child_rect != null and rect.intersects(child_rect):
+			return true
 	return false
 
-func spawn_pipe():
-	var on_ceiling = randi() % 2 == 0
-	var random_length = randf_range(1, 2)
-	var spawn_x = get_viewport_rect().size.x - 300
-	var spawn_pipe_instance
-	var global_position
-	
-	if on_ceiling:
-		print('on_cieling')
-		var upside_down_pipe_scene = preload("res://UpsideDownPipe/upsideDownPipe.tscn")
-		var upside_down_pipe_instance = upside_down_pipe_scene.instantiate() as Node2D
-		upside_down_pipe_instance.scale = Vector2(1, random_length)
-		global_position = Vector2(spawn_x, upside_down_pipe_instance.global_position.y)
-		print('before collide')
-		while will_collide(global_position):
-			print('sd1')
-			random_length = randf_range(-2, 2)
-			upside_down_pipe_instance.scale = Vector2(1, random_length)
-			#spawn_x += 2
-			global_position = Vector2(spawn_x, upside_down_pipe_instance.global_position.y)
-		spawn_pipe_instance = upside_down_pipe_instance
-	else:
-		print('on_ground')
-		var pipe_scene = preload("res://Pipe/pipe.tscn")
-		var pipe_instance = pipe_scene.instantiate() as Node2D
-		pipe_instance.scale = Vector2(1, random_length)
-		global_position = Vector2(spawn_x, get_viewport_rect().size.y - 75)
-		#while will_collide(global_position):
-		#	print('sd2')
-		#	random_length = randf_range(1, 2)
-		#	pipe_instance.scale = Vector2(1, random_length)
-		#	#spawn_x += 2
-		#	global_position = Vector2(spawn_x, get_viewport_rect().size.y - 75)
-		spawn_pipe_instance = pipe_instance
+func _get_entity_rect(node: Node) -> Variant:
+	if node.is_in_group("Wall"):
+		var cols = node.tile_columns if "tile_columns" in node else 5
+		var w = cols * EFFECTIVE_TILE_SIZE
+		var h = 3 * EFFECTIVE_TILE_SIZE  # WALL_THICKNESS
+		return Rect2(node.global_position, Vector2(w, h))
+	if node.is_in_group("Plankton"):
+		var s = Vector2(64, 64)
+		return Rect2(node.global_position - s / 2.0, s)
+	return null
 
-	add_child(spawn_pipe_instance)
-	spawn_pipe_instance.global_position = global_position
+func get_screen_bounds() -> Dictionary:
+	# Use the actual canvas transform to get real visible bounds in world space.
+	# This accounts for camera position, stretch mode, zoom, etc.
+	var ctf = get_canvas_transform()
+	var viewport_size = get_viewport_rect().size
+	var inv = ctf.affine_inverse()
+	var top_left = inv * Vector2.ZERO
+	var bottom_right = inv * viewport_size
+	return {"left": top_left.x, "right": bottom_right.x, "top": top_left.y, "bottom": bottom_right.y}
+
+func spawn_wall():
+	var on_left = randi() % 2 == 0
+	var visible_columns = randi_range(MIN_WALL_COLUMNS, MAX_WALL_COLUMNS)
+	# Add 2 extra columns that extend off-screen to guarantee flush edges
+	var total_columns = visible_columns + 2
+
+	var bounds = get_screen_bounds()
+	var wall_pixel_width = total_columns * EFFECTIVE_TILE_SIZE
+	var wall_pixel_height = 3 * EFFECTIVE_TILE_SIZE  # WALL_THICKNESS
+
+	# Spawn above the top of the visible area
+	var spawn_y = bounds.top - 300.0
+
+	var spawn_x: float
+	if on_left:
+		spawn_x = bounds.left - 2 * EFFECTIVE_TILE_SIZE
+	else:
+		spawn_x = bounds.right - wall_pixel_width + 2 * EFFECTIVE_TILE_SIZE
+
+	var spawn_pos = Vector2(spawn_x, spawn_y)
+	var wall_size = Vector2(wall_pixel_width, wall_pixel_height)
+
+	# Skip spawning if it would overlap an existing wall or plankton
+	if overlaps_existing(spawn_pos + wall_size / 2.0, wall_size):
+		return
+
+	var wall = WALL_SCENE.instantiate() as Node2D
+	wall.setup(total_columns)
+	add_child(wall)
+	wall.global_position = spawn_pos

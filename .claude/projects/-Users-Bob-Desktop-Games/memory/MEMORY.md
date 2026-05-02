@@ -1,0 +1,2 @@
+- [project_task_list.md](project_task_list.md) — Prioritized list of JellyUp improvements to work through
+- [user_profile.md](user_profile.md) — User profile: game dev building JellyUp in Godot 4.1

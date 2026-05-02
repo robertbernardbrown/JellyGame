@@ -4,7 +4,7 @@ extends Area2D
 
 func _process(delta):
 	anim.play('default')
-	position.x -= 200 * delta  # Adjust the speed as needed
+	position.x -= 200 * delta
 
-	if position.x < -get_viewport_rect().size.x - 500:
-		queue_free()  # Remove pipes when they are out of the screen
+	if global_position.x < -get_viewport_rect().size.x:
+		queue_free()
