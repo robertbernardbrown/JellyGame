@@ -28,13 +28,13 @@ var camera_start_x: float = 0.0
 var highest_y: float = 0.0  # Tracks the peak position (lowest Y value)
 var pulse_time: float = 0.0
 var energy: float = 1.0
-var _energy_bar_fill: ColorRect
-var _energy_bar_bg_height: float = 492.0
+var _displayed_energy: float = 1.0
+var _energy_progress_bar: TextureProgressBar
 
 func _ready():
 	camera_start_x = global_position.x
 	highest_y = global_position.y
-	_setup_energy_bar()
+	call_deferred("_setup_energy_bar")
 
 func _process(delta):
 	# Water drag — X always, Y only when moving upward (so gravity pull isn't canceled)
@@ -48,7 +48,7 @@ func _process(delta):
 	position += velocity * delta
 
 	energy = max(0.0, energy - ENERGY_DRAIN_RATE * delta)
-	_update_energy_bar()
+	_update_energy_bar(delta)
 
 	# Death if player drifts off-screen horizontally
 	if global_position.x < -SIDE_MARGIN or global_position.x > VIEWPORT_WIDTH + SIDE_MARGIN:
@@ -143,35 +143,31 @@ func restore_energy(amount: float):
 	energy = min(1.0, energy + amount)
 
 func _setup_energy_bar():
-	var canvas = CanvasLayer.new()
-	canvas.layer = 5
-	add_child(canvas)
-
-	var bg = ColorRect.new()
-	bg.color = Color(0, 0.05, 0.15, 0.65)
-	bg.position = Vector2(672, 200)
-	bg.size = Vector2(36, 500)
-	canvas.add_child(bg)
-
-	var fill = ColorRect.new()
-	fill.color = Color(0, 0.85, 1, 0.85)
-	fill.position = Vector2(4, 4)
-	fill.size = Vector2(28, _energy_bar_bg_height)
-	bg.add_child(fill)
-	_energy_bar_fill = fill
-
-func _update_energy_bar():
-	if not _energy_bar_fill:
+	var hud = get_node_or_null("/root/World/HUD")
+	if not hud:
 		return
-	var fill_height = _energy_bar_bg_height * energy
-	_energy_bar_fill.size.y = fill_height
-	_energy_bar_fill.position.y = (_energy_bar_bg_height - fill_height) + 4
-	_energy_bar_fill.color = Color(
-		lerp(0.9, 0.0, energy),
-		lerp(0.15, 0.85, energy),
-		lerp(0.1, 1.0, energy),
-		0.85
-	)
+
+	var bar = TextureProgressBar.new()
+	bar.texture_under = load("res://Animations/Resource_Meter/Sprite-0002.png")
+	bar.texture_progress = load("res://Animations/Resource_Meter/resource_meter1.png")
+	bar.fill_mode = TextureProgressBar.FILL_BOTTOM_TO_TOP
+	bar.min_value = 0.0
+	bar.max_value = 100.0
+	bar.value = 100.0
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud.add_child(bar)
+	# TextureProgressBar locks to its texture size (1024x1024).
+	# Offset left so the bar content (~60% across the canvas) lands at the right screen edge.
+	bar.position = Vector2(50, 67)
+	_energy_progress_bar = bar
+
+func _update_energy_bar(delta: float):
+	if not _energy_progress_bar:
+		return
+	# Drain tracks fast (feels responsive), fill tracks slower (feels rewarding)
+	var speed = 10.0 if energy < _displayed_energy else 5.0
+	_displayed_energy = lerp(_displayed_energy, energy, speed * delta)
+	_energy_progress_bar.value = _displayed_energy * 100.0
 
 func restart_game():
 	var tracker = get_node_or_null("/root/World/ScoreTracker")
