@@ -8,7 +8,6 @@ func _ready():
 	area_entered.connect(_on_area_entered)
 
 func _process(_delta):
-	# Free when scrolled well past the bottom of the visible area
 	var players = get_tree().get_nodes_in_group("Player")
 	if players.size() > 0:
 		var player_y = players[0].global_position.y

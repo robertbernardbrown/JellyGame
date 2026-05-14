@@ -2,9 +2,15 @@ extends Node2D
 
 const WALL_SPAWN_INTERVAL = 3.0
 var PLANKTON_SPAWN_INTERVAL = 4.0
+const URCHIN_SPAWN_INTERVAL = 10.0
+
+# Fixed x positions aligned with the centre of Layer 5's black side strips
+const URCHIN_LEFT_X  = 25.0
+const URCHIN_RIGHT_X = 695.0
 
 const WALL_SCENE = preload("res://Walls/Wall.tscn")
 const PLANKTON_SCENE = preload("res://Plankton/Plankton.tscn")
+const URCHIN_SCENE = preload("res://Urchin/Urchin.tscn")
 const SCORE_TRACKER_SCENE = preload("res://ScoreTracker/score_tracker.tscn")
 
 # Wall tiles are 16px at 4x scale = 64px each.
@@ -25,11 +31,24 @@ func start_timer(spawn_interval, timer_func, one_shot):
 func _ready():
 	start_timer(WALL_SPAWN_INTERVAL, _on_WallSpawnTimer_timeout, false)
 	start_timer(PLANKTON_SPAWN_INTERVAL, _on_PlanktonSpawnTimer_timeout, true)
+	start_timer(URCHIN_SPAWN_INTERVAL, _on_UrchinSpawnTimer_timeout, false)
 	var score_tracker_instance = SCORE_TRACKER_SCENE.instantiate() as Node2D
 	add_child(score_tracker_instance)
 
 func _on_WallSpawnTimer_timeout():
 	spawn_wall()
+
+func _on_UrchinSpawnTimer_timeout():
+	spawn_urchin()
+
+func spawn_urchin():
+	var on_left = randi() % 2 == 0
+	var bounds = get_screen_bounds()
+	var urchin = URCHIN_SCENE.instantiate()
+	urchin.setup(on_left)
+	add_child(urchin)
+	var x = URCHIN_LEFT_X if on_left else URCHIN_RIGHT_X
+	urchin.global_position = Vector2(x, bounds.top - 50.0)
 
 func _on_PlanktonSpawnTimer_timeout():
 	spawn_plankton()
@@ -122,3 +141,4 @@ func spawn_wall():
 	wall.setup(total_columns)
 	add_child(wall)
 	wall.global_position = spawn_pos
+
