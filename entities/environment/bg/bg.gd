@@ -2,6 +2,7 @@ extends ParallaxBackground
 
 var _layer_sprites: Array = []
 var _time: float = 0.0
+var _canvas_mod: CanvasModulate
 
 # Per-layer wave settings [strength, speed] — front layers slightly stronger
 const WAVE_SETTINGS = [
@@ -29,6 +30,14 @@ func _ready():
 		mat.set_shader_parameter("wave_speed", WAVE_SETTINGS[i][1])
 		sprite.material = mat
 		_layer_sprites.append(sprite)
+
+	_canvas_mod = CanvasModulate.new()
+	_canvas_mod.color = Color.WHITE
+	add_child(_canvas_mod)
+
+func set_ambient(color: Color):
+	if _canvas_mod:
+		_canvas_mod.color = color
 
 func _process(delta):
 	_time += delta

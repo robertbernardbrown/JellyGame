@@ -34,6 +34,10 @@ var _energy_bar_mat: ShaderMaterial
 var _flash_amount: float = 0.0
 var _time: float = 0.0
 
+const DEBUG_JUMP_METERS = 100.0
+var _debug_noclip: bool = false
+var _debug_label: Label = null
+
 func _ready():
 	camera_start_x = global_position.x
 	highest_y = global_position.y
@@ -43,6 +47,10 @@ func _ready():
 	_setup_energy_bar.call_deferred()
 
 func _process(delta):
+	if _debug_noclip:
+		_process_noclip(delta)
+		return
+
 	# Water drag — X always, Y only when moving upward (so gravity pull isn't canceled)
 	velocity.x = move_toward(velocity.x, 0.0, WATER_DRAG_X * abs(velocity.x) * delta + 20.0 * delta)
 	if velocity.y < 0:
@@ -128,6 +136,17 @@ func _get_charge_percent() -> float:
 	return clamp(held / MAX_CHARGE_TIME, 0.0, 1.0)
 
 func _unhandled_input(event):
+	if event is InputEventKey and event.pressed and not event.echo:
+		match event.keycode:
+			KEY_F1:
+				_toggle_noclip()
+			KEY_F2:
+				if _debug_noclip:
+					_debug_teleport(100.0)
+			KEY_F3:
+				if _debug_noclip:
+					_debug_teleport(-100.0)
+
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
 			_press_has_energy = energy >= ENERGY_SWIM_COST_MIN
@@ -191,3 +210,38 @@ func restart_game():
 	if tracker:
 		tracker.save_if_high_score()
 	get_tree().change_scene_to_file("res://main.tscn")
+
+func _process_noclip(delta: float):
+	energy = 1.0
+	_time += delta
+	_update_energy_bar(delta)
+
+	var dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
+	velocity = dir * 600.0
+	move_and_slide()
+
+	if global_position.y < highest_y:
+		highest_y = global_position.y
+
+	camera.position.x = camera_start_x - global_position.x
+	camera.position.y = min(0.0, highest_y - global_position.y)
+
+func _debug_teleport(metres: float):
+	var new_y = global_position.y - metres * 50.0
+	global_position.y = new_y
+	highest_y = minf(highest_y, new_y)
+	velocity = Vector2.ZERO
+
+func _toggle_noclip():
+	_debug_noclip = not _debug_noclip
+	velocity = Vector2.ZERO
+	if not _debug_label:
+		var hud = get_node_or_null("/root/World/HUD")
+		if hud:
+			_debug_label = Label.new()
+			_debug_label.add_theme_color_override("font_color", Color(1, 1, 0, 0.85))
+			_debug_label.add_theme_font_size_override("font_size", 20)
+			_debug_label.position = Vector2(12, 12)
+			hud.add_child(_debug_label)
+	if _debug_label:
+		_debug_label.text = "DEBUG: noclip ON  |  F2 = +100m  |  F3 = -100m" if _debug_noclip else ""

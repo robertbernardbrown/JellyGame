@@ -4,6 +4,17 @@ const WALL_SPAWN_INTERVAL = 3.0
 var PLANKTON_SPAWN_INTERVAL = 4.0
 const URCHIN_SPAWN_INTERVAL = 10.0
 
+const AMBIENT_START  = Color(1.0, 1.0, 1.0, 1.0)  # slightly lighter than default
+const AMBIENT_DARK   = Color(0.02, 0.015, 0.07, 1.0)  # near-black at max depth
+const DARK_START_DEPTH = 50.0    # metres before darkening kicks in
+const DARK_FULL_DEPTH  = 1000.0   # metres where max darkness is reached
+
+var _canvas_modulate: CanvasModulate
+var _bg: Node
+var _player: Node
+var _player_start_y: float
+var _peak_depth: float = 0.0
+
 # Fixed x positions aligned with the centre of Layer 5's black side strips
 const URCHIN_LEFT_X  = 25.0
 const URCHIN_RIGHT_X = 695.0
@@ -34,6 +45,23 @@ func _ready():
 	start_timer(URCHIN_SPAWN_INTERVAL, _on_UrchinSpawnTimer_timeout, false)
 	var score_tracker_instance = SCORE_TRACKER_SCENE.instantiate() as Node
 	add_child(score_tracker_instance)
+	_canvas_modulate = $CanvasModulate
+	_canvas_modulate.color = AMBIENT_START
+	_bg = get_node_or_null("BG")
+	_player = get_node_or_null("Player")
+	if _player:
+		_player_start_y = _player.global_position.y
+
+func _process(_delta):
+	if not _player:
+		return
+	var depth = (_player_start_y - _player.global_position.y) / 50.0
+	_peak_depth = maxf(_peak_depth, depth)
+	var t = clamp((_peak_depth - DARK_START_DEPTH) / (DARK_FULL_DEPTH - DARK_START_DEPTH), 0.0, 1.0)
+	var ambient = AMBIENT_START.lerp(AMBIENT_DARK, t)
+	_canvas_modulate.color = ambient
+	if _bg:
+		_bg.set_ambient(ambient)
 
 func _on_WallSpawnTimer_timeout():
 	spawn_wall()
