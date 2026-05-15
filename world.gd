@@ -8,10 +8,10 @@ const URCHIN_SPAWN_INTERVAL = 10.0
 const URCHIN_LEFT_X  = 25.0
 const URCHIN_RIGHT_X = 695.0
 
-const WALL_SCENE = preload("res://Walls/Wall.tscn")
-const PLANKTON_SCENE = preload("res://Plankton/Plankton.tscn")
-const URCHIN_SCENE = preload("res://Urchin/Urchin.tscn")
-const SCORE_TRACKER_SCENE = preload("res://ScoreTracker/score_tracker.tscn")
+const WALL_SCENE = preload("res://entities/obstacles/wall/wall.tscn")
+const PLANKTON_SCENE = preload("res://entities/collectibles/plankton/plankton.tscn")
+const URCHIN_SCENE = preload("res://entities/obstacles/urchin/urchin.tscn")
+const SCORE_TRACKER_SCENE = preload("res://ui/score_tracker/score_tracker.tscn")
 
 # Wall tiles are 16px at 4x scale = 64px each.
 # Viewport is 720px wide = ~11 tiles across.
@@ -23,7 +23,7 @@ func start_timer(spawn_interval, timer_func, one_shot):
 	var new_timer = Timer.new()
 	add_child(new_timer)
 	new_timer.wait_time = spawn_interval
-	new_timer.connect('timeout', timer_func)
+	new_timer.timeout.connect(timer_func)
 	if one_shot:
 		new_timer.one_shot = true
 	new_timer.start()
@@ -32,7 +32,7 @@ func _ready():
 	start_timer(WALL_SPAWN_INTERVAL, _on_WallSpawnTimer_timeout, false)
 	start_timer(PLANKTON_SPAWN_INTERVAL, _on_PlanktonSpawnTimer_timeout, true)
 	start_timer(URCHIN_SPAWN_INTERVAL, _on_UrchinSpawnTimer_timeout, false)
-	var score_tracker_instance = SCORE_TRACKER_SCENE.instantiate() as Node2D
+	var score_tracker_instance = SCORE_TRACKER_SCENE.instantiate() as Node
 	add_child(score_tracker_instance)
 
 func _on_WallSpawnTimer_timeout():
@@ -55,8 +55,8 @@ func _on_PlanktonSpawnTimer_timeout():
 	PLANKTON_SPAWN_INTERVAL = randf_range(3, 4)
 	var plankton_spawn_timer = get_node('plankton_spawn_timer')
 	plankton_spawn_timer.wait_time = PLANKTON_SPAWN_INTERVAL
-	if not plankton_spawn_timer.is_connected('timeout', _on_PlanktonSpawnTimer_timeout):
-		plankton_spawn_timer.connect('timeout', _on_PlanktonSpawnTimer_timeout)
+	if not plankton_spawn_timer.timeout.is_connected(_on_PlanktonSpawnTimer_timeout):
+		plankton_spawn_timer.timeout.connect(_on_PlanktonSpawnTimer_timeout)
 	plankton_spawn_timer.start()
 
 func get_random_plankton_position():
@@ -69,6 +69,8 @@ func get_random_plankton_position():
 	return Vector2(spawn_x, spawn_y)
 
 func spawn_plankton():
+	if get_tree().get_nodes_in_group("Plankton").size() >= MAX_PLANKTON:
+		return
 	var plankton_instance = PLANKTON_SCENE.instantiate() as Node2D
 	var plankton_size = Vector2(64, 64)  # Approximate plankton bounds (16px sprite at 4x)
 	var spawn_position = get_random_plankton_position()
@@ -81,6 +83,7 @@ func spawn_plankton():
 
 # Buffer added around each entity so they don't spawn touching
 const SPAWN_BUFFER = 40.0
+const MAX_PLANKTON = 3
 
 func overlaps_existing(pos: Vector2, size: Vector2) -> bool:
 	var rect = Rect2(pos - size / 2.0, size).grow(SPAWN_BUFFER)

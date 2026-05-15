@@ -14,8 +14,8 @@ var jellies: Array = []
 var bungee_font: Font
 
 func _ready():
-	jelly_sheet = preload("res://Animations/Player/jelly_animations-Sheet.png")
-	bungee_font = preload("res://Fonts/Bungee/Bungee-Regular.ttf")
+	jelly_sheet = preload("res://assets/sprites/player/jelly_animations-Sheet.png")
+	bungee_font = preload("res://assets/fonts/bungee/Bungee-Regular.ttf")
 	idle_frames = _build_idle_frames()
 	_spawn_bloom()
 	_apply_theme()

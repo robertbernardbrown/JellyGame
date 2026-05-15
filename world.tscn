@@ -1,8 +1,8 @@
 [gd_scene load_steps=4 format=3 uid="uid://qxnipx3up0n8"]
 
 [ext_resource type="Script" path="res://world.gd" id="1_b3hfs"]
-[ext_resource type="PackedScene" uid="uid://bbnm270xll0iw" path="res://BG.tscn" id="2_tlkxw"]
-[ext_resource type="PackedScene" uid="uid://xkt8ckcktuo0" path="res://Player/Player.tscn" id="4_0iotc"]
+[ext_resource type="PackedScene" uid="uid://bbnm270xll0iw" path="res://entities/environment/bg/bg.tscn" id="2_tlkxw"]
+[ext_resource type="PackedScene" uid="uid://xkt8ckcktuo0" path="res://entities/player/player.tscn" id="4_0iotc"]
 
 [node name="World" type="Node2D"]
 y_sort_enabled = true
