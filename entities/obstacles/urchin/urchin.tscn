@@ -1,17 +1,38 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://entities/obstacles/urchin/urchin.gd" id="1_script"]
-[ext_resource type="Texture2D" path="res://assets/sprites/urchin/urchin.png" id="2_tex"]
-[ext_resource type="Texture2D" path="res://assets/sprites/urchin/urchin_rotated.png" id="3_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/urchin/urchin-Sheet.png" id="2_sheet"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_0"]
+atlas = ExtResource("2_sheet")
+region = Rect2(0, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_1"]
+atlas = ExtResource("2_sheet")
+region = Rect2(16, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_2"]
+atlas = ExtResource("2_sheet")
+region = Rect2(32, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_3"]
+atlas = ExtResource("2_sheet")
+region = Rect2(48, 0, 16, 16)
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_roll"]
 animations = [{
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("2_tex")
+"texture": SubResource("AtlasTexture_0")
 }, {
 "duration": 1.0,
-"texture": ExtResource("3_tex")
+"texture": SubResource("AtlasTexture_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_3")
 }],
 "loop": true,
 "name": &"Roll",
