@@ -20,16 +20,6 @@ position = Vector2(360, 640)
 [node name="HUD" type="CanvasLayer" parent="."]
 layer = 10
 
-[node name="ScoreDisplay" type="Label" parent="HUD"]
-offset_top = 40.0
-offset_right = 720.0
-offset_bottom = 200.0
-theme_override_colors/font_color = Color(0, 0.9, 1, 0.9)
-theme_override_colors/font_shadow_color = Color(0, 0.2, 0.4, 0.6)
-theme_override_constants/shadow_offset_x = 3
-theme_override_constants/shadow_offset_y = 3
-theme_override_font_sizes/font_size = 120
-horizontal_alignment = 1
 
 [node name="DepthDisplay" type="Label" parent="HUD"]
 offset_left = 20.0

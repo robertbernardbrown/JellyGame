@@ -10,7 +10,6 @@ var max_depth: float = 0.0
 var _player: Node = null
 
 func _ready():
-	score_label = get_node("/root/World/HUD/ScoreDisplay")
 	depth_label = get_node("/root/World/HUD/DepthDisplay")
 	_player = get_node_or_null("/root/World/Player")
 	if _player:
@@ -26,7 +25,10 @@ func _process(_delta):
 
 func increment_score(amount: int = 1):
 	score += amount
-	score_label.text = str(score)
+	if not score_label:
+		score_label = get_node_or_null("/root/World/HUD/ScoreDisplay")
+	if score_label:
+		score_label.text = str(score)
 
 func save_if_high_score():
 	var data = _load_save_data()

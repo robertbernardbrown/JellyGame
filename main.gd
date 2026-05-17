@@ -1,6 +1,7 @@
 extends Node2D
 
-const JELLY_COUNT = 18
+const JELLY_BEHIND_COUNT = 13
+const JELLY_FRONT_COUNT = 5
 const VIEWPORT_WIDTH = 720.0
 const VIEWPORT_HEIGHT = 1280.0
 const BLOOM_SINK_RATE = 0.90
@@ -42,24 +43,24 @@ func _build_idle_frames() -> SpriteFrames:
 	return frames
 
 func _spawn_bloom():
-	for i in range(JELLY_COUNT):
+	_spawn_jellies(JELLY_BEHIND_COUNT, $JellyBloomBehind, 0.2, 0.45)
+	_spawn_jellies(JELLY_FRONT_COUNT, $JellyBloom, 0.4, 0.7)
+
+func _spawn_jellies(count: int, container: Node2D, alpha_min: float, alpha_max: float):
+	for i in range(count):
 		var jelly = AnimatedSprite2D.new()
 		jelly.sprite_frames = idle_frames
-		# Small scale keeps frame jitter minimal
 		var s = randf_range(1.5, 3.0)
 		jelly.scale = Vector2(s, s)
-		# Spread across the screen, random starting Y so they don't all start together
 		jelly.position = Vector2(
 			randf_range(60, VIEWPORT_WIDTH - 60),
 			randf_range(0, VIEWPORT_HEIGHT)
 		)
-		# Slightly transparent so they don't overwhelm the UI
-		jelly.modulate = Color(1, 1, 1, randf_range(0.3, 0.7))
-		# Start each at a random frame so they don't pulse in sync
+		jelly.modulate = Color(1, 1, 1, randf_range(alpha_min, alpha_max))
 		jelly.play("Idle")
 		jelly.frame = randi_range(0, 17)
 
-		$JellyBloom.add_child(jelly)
+		container.add_child(jelly)
 
 		jellies.append({
 			"node": jelly,

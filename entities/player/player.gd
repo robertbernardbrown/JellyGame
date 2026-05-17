@@ -45,6 +45,7 @@ func _ready():
 	mat.shader = load("res://entities/player/flash.gdshader")
 	anim.material = mat
 	_setup_energy_bar.call_deferred()
+	_setup_plankton_counter.call_deferred()
 
 func _process(delta):
 	if _debug_noclip:
@@ -179,20 +180,52 @@ func _setup_energy_bar():
 		return
 
 	var bar = TextureRect.new()
-	bar.texture = load("res://assets/sprites/resource_meter/resource_meter1.png")
+	bar.texture = load("res://assets/sprites/resource_meter/resource_meter_pink.png")
 	bar.stretch_mode = TextureRect.STRETCH_KEEP
 	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	var mat = ShaderMaterial.new()
 	mat.shader = load("res://entities/player/energy_bar.gdshader")
-	mat.set_shader_parameter("under_texture", load("res://assets/sprites/resource_meter/Sprite-0002.png"))
 	mat.set_shader_parameter("fill_amount", 1.0)
-	mat.set_shader_parameter("time_val", 0.0)
 	bar.material = mat
 	_energy_bar_mat = mat
 
 	hud.add_child(bar)
-	bar.position = Vector2(655, 50)
+	var vh = get_viewport().get_visible_rect().size.y
+	bar.position = Vector2(0, vh - 57)
+
+
+func _setup_plankton_counter():
+	var hud = get_node_or_null("/root/World/HUD")
+	if not hud:
+		return
+
+	var y = 108
+
+	var icon = TextureRect.new()
+	var atlas = AtlasTexture.new()
+	atlas.atlas = load("res://assets/sprites/plankton/plankton.png")
+	atlas.region = Rect2(0, 16, 16, 16)
+	icon.texture = atlas
+	icon.stretch_mode = TextureRect.STRETCH_SCALE
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud.add_child(icon)
+	icon.size = Vector2(48, 48)
+	icon.position = Vector2(16, y)
+
+	var label = Label.new()
+	label.name = "ScoreDisplay"
+	label.text = "0"
+	label.add_theme_color_override("font_color", Color(1.0, 0.75, 0.2, 0.9))
+	label.add_theme_color_override("font_shadow_color", Color(0.3, 0.1, 0.0, 0.5))
+	label.add_theme_constant_override("shadow_offset_x", 2)
+	label.add_theme_constant_override("shadow_offset_y", 2)
+	label.add_theme_font_size_override("font_size", 40)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud.add_child(label)
+	label.position = Vector2(72, y + 4)
+
 
 
 func _update_energy_bar(delta: float):
@@ -203,7 +236,7 @@ func _update_energy_bar(delta: float):
 	_displayed_energy = lerp(_displayed_energy, energy, speed * delta)
 	var usable = max(0.0, _displayed_energy - ENERGY_SWIM_COST_MIN) / (1.0 - ENERGY_SWIM_COST_MIN)
 	_energy_bar_mat.set_shader_parameter("fill_amount", maxf(0.0, usable))
-	_energy_bar_mat.set_shader_parameter("time_val", _time)
+	# _energy_bar_mat.set_shader_parameter("time_val", _time)  # wiggly effect
 
 func restart_game():
 	var tracker = get_node_or_null("/root/World/ScoreTracker")

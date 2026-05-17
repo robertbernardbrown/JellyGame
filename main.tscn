@@ -8,6 +8,8 @@ script = ExtResource("1_n2hda")
 
 [node name="BG" parent="." instance=ExtResource("2_f2snd")]
 
+[node name="JellyBloomBehind" type="Node2D" parent="."]
+
 [node name="Title" type="Label" parent="."]
 offset_top = 100.0
 offset_right = 720.0

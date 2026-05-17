@@ -7,7 +7,7 @@ const URCHIN_SPAWN_INTERVAL = 10.0
 const AMBIENT_START  = Color(1.0, 1.0, 1.0, 1.0)  # slightly lighter than default
 const AMBIENT_DARK   = Color(0.02, 0.015, 0.07, 1.0)  # near-black at max depth
 const DARK_START_DEPTH = 50.0    # metres before darkening kicks in
-const DARK_FULL_DEPTH  = 1000.0   # metres where max darkness is reached
+const DARK_FULL_DEPTH  = 500.0    # metres where max darkness is reached
 
 var _canvas_modulate: CanvasModulate
 var _bg: Node
