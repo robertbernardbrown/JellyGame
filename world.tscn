@@ -20,7 +20,6 @@ position = Vector2(360, 640)
 [node name="HUD" type="CanvasLayer" parent="."]
 layer = 10
 
-
 [node name="DepthDisplay" type="Label" parent="HUD"]
 offset_left = 20.0
 offset_top = 160.0

@@ -4,8 +4,10 @@ const WALL_SPAWN_INTERVAL = 3.0
 var PLANKTON_SPAWN_INTERVAL = 4.0
 const URCHIN_SPAWN_INTERVAL = 10.0
 
-const AMBIENT_START  = Color(1.0, 1.0, 1.0, 1.0)  # slightly lighter than default
-const AMBIENT_DARK   = Color(0.02, 0.015, 0.07, 1.0)  # near-black at max depth
+# Adjust this to control the minimum darkness colour (deep blue = darker/moodier, lighter = more visible)
+const AMBIENT_FLOOR  = Color(0.02, 0.04, 0.18, 1.0)
+const AMBIENT_START  = AMBIENT_FLOOR
+const AMBIENT_DARK   = AMBIENT_FLOOR
 const DARK_START_DEPTH = 50.0    # metres before darkening kicks in
 const DARK_FULL_DEPTH  = 500.0    # metres where max darkness is reached
 
@@ -125,7 +127,7 @@ func _get_entity_rect(node: Node) -> Variant:
 	if node.is_in_group("Wall"):
 		var cols = node.tile_columns if "tile_columns" in node else 5
 		var w = cols * EFFECTIVE_TILE_SIZE
-		var h = 3 * EFFECTIVE_TILE_SIZE  # WALL_THICKNESS
+		var h = 4 * EFFECTIVE_TILE_SIZE  # max wall height (2 + MAX_MIDDLE_FILLS)
 		return Rect2(node.global_position, Vector2(w, h))
 	if node.is_in_group("Plankton"):
 		var s = Vector2(64, 64)
@@ -142,15 +144,18 @@ func get_screen_bounds() -> Dictionary:
 	var bottom_right = inv * viewport_size
 	return {"left": top_left.x, "right": bottom_right.x, "top": top_left.y, "bottom": bottom_right.y}
 
+var _next_wall_left: bool = true
+
 func spawn_wall():
-	var on_left = randi() % 2 == 0
+	var on_left = _next_wall_left
+	_next_wall_left = !_next_wall_left
 	var visible_columns = randi_range(MIN_WALL_COLUMNS, MAX_WALL_COLUMNS)
 	# Add 2 extra columns that extend off-screen to guarantee flush edges
 	var total_columns = visible_columns + 2
 
 	var bounds = get_screen_bounds()
 	var wall_pixel_width = total_columns * EFFECTIVE_TILE_SIZE
-	var wall_pixel_height = 3 * EFFECTIVE_TILE_SIZE  # WALL_THICKNESS
+	var wall_pixel_height = 4 * EFFECTIVE_TILE_SIZE  # max wall height (2 + MAX_MIDDLE_FILLS)
 
 	# Spawn above the top of the visible area
 	var spawn_y = bounds.top - 300.0
@@ -169,7 +174,7 @@ func spawn_wall():
 		return
 
 	var wall = WALL_SCENE.instantiate() as Node2D
-	wall.setup(total_columns)
+	wall.setup(total_columns, on_left)
 	add_child(wall)
 	wall.global_position = spawn_pos
 

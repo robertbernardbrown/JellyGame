@@ -1,54 +1,51 @@
 [gd_scene load_steps=8 format=3 uid="uid://b20unkctncs7u"]
 
-[ext_resource type="Texture2D" uid="uid://b4i7jnhq0pqt1" path="res://assets/sprites/backgrounds/tilesets.png" id="1_44v3s"]
+[ext_resource type="Texture2D" uid="uid://e61afiet6q6g" path="res://assets/sprites/plants/plants-Sheet.png" id="1_id5yg"]
 [ext_resource type="Texture2D" uid="uid://bi5nfvja2mumn" path="res://assets/sprites/lights/smallLight.png" id="2_q33hs"]
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_omt77"]
-atlas = ExtResource("1_44v3s")
-region = Rect2(176, 0, 16, 16)
+[sub_resource type="AtlasTexture" id="AtlasTexture_i76r0"]
+atlas = ExtResource("1_id5yg")
+region = Rect2(0, 0, 16, 16)
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_oimhb"]
-atlas = ExtResource("1_44v3s")
-region = Rect2(192, 0, 16, 16)
+[sub_resource type="AtlasTexture" id="AtlasTexture_mtilw"]
+atlas = ExtResource("1_id5yg")
+region = Rect2(16, 0, 16, 16)
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_86xi6"]
-atlas = ExtResource("1_44v3s")
-region = Rect2(208, 0, 16, 16)
+[sub_resource type="AtlasTexture" id="AtlasTexture_s4d1e"]
+atlas = ExtResource("1_id5yg")
+region = Rect2(32, 0, 16, 16)
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_p4lan"]
-atlas = ExtResource("1_44v3s")
-region = Rect2(224, 0, 16, 16)
+[sub_resource type="AtlasTexture" id="AtlasTexture_wrh2u"]
+atlas = ExtResource("1_id5yg")
+region = Rect2(48, 0, 16, 16)
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_rhjn6"]
 animations = [{
 "frames": [{
 "duration": 1.0,
-"texture": SubResource("AtlasTexture_omt77")
+"texture": SubResource("AtlasTexture_i76r0")
 }, {
 "duration": 1.0,
-"texture": SubResource("AtlasTexture_oimhb")
+"texture": SubResource("AtlasTexture_mtilw")
 }, {
 "duration": 1.0,
-"texture": SubResource("AtlasTexture_86xi6")
+"texture": SubResource("AtlasTexture_s4d1e")
 }, {
 "duration": 1.0,
-"texture": SubResource("AtlasTexture_p4lan")
+"texture": SubResource("AtlasTexture_wrh2u")
 }, {
 "duration": 1.0,
-"texture": SubResource("AtlasTexture_p4lan")
+"texture": SubResource("AtlasTexture_s4d1e")
 }, {
 "duration": 1.0,
-"texture": SubResource("AtlasTexture_86xi6")
+"texture": SubResource("AtlasTexture_mtilw")
 }, {
 "duration": 1.0,
-"texture": SubResource("AtlasTexture_oimhb")
-}, {
-"duration": 1.0,
-"texture": SubResource("AtlasTexture_omt77")
+"texture": SubResource("AtlasTexture_i76r0")
 }],
 "loop": true,
 "name": &"default",
-"speed": 5.0
+"speed": 1.0
 }]
 
 [node name="Plants" type="Area2D"]
@@ -56,7 +53,7 @@ animations = [{
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 scale = Vector2(4, 4)
 sprite_frames = SubResource("SpriteFrames_rhjn6")
-frame_progress = 0.872745
+frame_progress = 0.0587456
 
 [node name="Light" type="Node2D" parent="."]
 

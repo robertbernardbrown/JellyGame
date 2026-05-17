@@ -1,0 +1,67 @@
+[gd_scene load_steps=8 format=3 uid="uid://dw3r9kpx5m2vn"]
+
+[ext_resource type="Texture2D" uid="uid://e61afiet6q6g" path="res://assets/sprites/plants/plants-Sheet.png" id="1"]
+[ext_resource type="Texture2D" uid="uid://bi5nfvja2mumn" path="res://assets/sprites/lights/smallLight.png" id="2"]
+
+[sub_resource type="AtlasTexture" id="AT_1"]
+atlas = ExtResource("1")
+region = Rect2(0, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AT_2"]
+atlas = ExtResource("1")
+region = Rect2(16, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AT_3"]
+atlas = ExtResource("1")
+region = Rect2(32, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AT_4"]
+atlas = ExtResource("1")
+region = Rect2(48, 0, 16, 16)
+
+[sub_resource type="SpriteFrames" id="SF_1"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AT_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AT_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AT_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AT_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("AT_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AT_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AT_1")
+}],
+"loop": true,
+"name": &"default",
+"speed": 1.0
+}]
+
+[node name="WallPlant" type="Node2D"]
+
+[node name="Sprite" type="AnimatedSprite2D" parent="."]
+scale = Vector2(4, 4)
+sprite_frames = SubResource("SF_1")
+animation = &"default"
+frame = 0
+autoplay = "default"
+
+[node name="Light" type="Node2D" parent="."]
+
+[node name="LightTexture" type="PointLight2D" parent="Light"]
+position = Vector2(2, 10)
+scale = Vector2(1.08333, 1.08333)
+blend_mode = 2
+range_layer_min = -100
+texture = ExtResource("2")

@@ -2,6 +2,7 @@ extends CharacterBody2D
 
 @onready var anim: AnimatedSprite2D = $AnimatedSprite2D
 @onready var camera: Camera2D = $Camera2D
+@onready var _light: PointLight2D = $Light/LightTexture
 
 const MIN_PROPEL_SPEED = 200.0   # Quick tap — small nudge
 const MAX_PROPEL_SPEED = 900.0  # Full charge — big burst
@@ -18,12 +19,11 @@ const VIEWPORT_HEIGHT = 1280.0
 const SIDE_MARGIN = 60.0  # Buffer past screen edge before death
 const FALL_MARGIN = 80.0  # How far below screen bottom before death
 const ENERGY_DRAIN_RATE = 0.02     # Passive drain per second (empties in ~20s)
-const ENERGY_SWIM_COST_MIN = 0.02  # Energy cost for a quick tap
-const ENERGY_SWIM_COST_MAX = 0.05  # Energy cost for a full-charge burst
+const LIGHT_SCALE_MIN = 8.0
+const LIGHT_SCALE_MAX = 30.0
 
 var tap_position: Vector2 = Vector2.ZERO
 var is_pressing: bool = false
-var _press_has_energy: bool = false
 var press_start_time: float = 0.0
 var camera_start_x: float = 0.0
 var highest_y: float = 0.0  # Tracks the peak position (lowest Y value)
@@ -44,7 +44,7 @@ func _ready():
 	var mat = ShaderMaterial.new()
 	mat.shader = load("res://entities/player/flash.gdshader")
 	anim.material = mat
-	_setup_energy_bar.call_deferred()
+	# _setup_energy_bar.call_deferred()
 	_setup_plankton_counter.call_deferred()
 
 func _process(delta):
@@ -63,6 +63,7 @@ func _process(delta):
 	energy = max(0.0, energy - ENERGY_DRAIN_RATE * delta)
 	_time += delta
 	_update_energy_bar(delta)
+	_update_light_scale()
 
 	if _flash_amount > 0.0:
 		_flash_amount = maxf(0.0, _flash_amount - delta * 4.0)
@@ -150,23 +151,18 @@ func _unhandled_input(event):
 
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
-			_press_has_energy = energy >= ENERGY_SWIM_COST_MIN
-			if _press_has_energy:
-				tap_position = get_global_mouse_position()
-				press_start_time = Time.get_ticks_msec() / 1000.0
-				anim.play('Set')
-				is_pressing = true
+			tap_position = get_global_mouse_position()
+			press_start_time = Time.get_ticks_msec() / 1000.0
+			anim.play('Set')
+			is_pressing = true
 		elif is_pressing:
 			var charge = _get_charge_percent()
-			if _press_has_energy:
-				var speed = lerp(MIN_PROPEL_SPEED, MAX_PROPEL_SPEED, charge)
-				var diff_x = tap_position.x - global_position.x
-				var x_factor = clamp(diff_x / 200.0, -1.0, 1.0)
-				var y_factor = -sqrt(1.0 - x_factor * x_factor)
-				y_factor = min(y_factor, -0.15)
-				velocity = Vector2(x_factor, y_factor).normalized() * speed
-				var cost = lerp(ENERGY_SWIM_COST_MIN, ENERGY_SWIM_COST_MAX, charge)
-				energy = max(0.0, energy - cost)
+			var speed = lerp(MIN_PROPEL_SPEED, MAX_PROPEL_SPEED, charge)
+			var diff_x = tap_position.x - global_position.x
+			var x_factor = clamp(diff_x / 200.0, -1.0, 1.0)
+			var y_factor = -sqrt(1.0 - x_factor * x_factor)
+			y_factor = min(y_factor, -0.15)
+			velocity = Vector2(x_factor, y_factor).normalized() * speed
 			anim.play('Float')
 			is_pressing = false
 
@@ -228,15 +224,18 @@ func _setup_plankton_counter():
 
 
 
+func _update_light_scale():
+	var s = lerp(LIGHT_SCALE_MIN, LIGHT_SCALE_MAX, _displayed_energy)
+	_light.scale = Vector2(s, s)
+
 func _update_energy_bar(delta: float):
-	if not _energy_bar_mat:
-		return
 	# Drain tracks fast (feels responsive), fill tracks slower (feels rewarding)
 	var speed = 10.0 if energy < _displayed_energy else 5.0
 	_displayed_energy = lerp(_displayed_energy, energy, speed * delta)
-	var usable = max(0.0, _displayed_energy - ENERGY_SWIM_COST_MIN) / (1.0 - ENERGY_SWIM_COST_MIN)
-	_energy_bar_mat.set_shader_parameter("fill_amount", maxf(0.0, usable))
-	# _energy_bar_mat.set_shader_parameter("time_val", _time)  # wiggly effect
+	# if not _energy_bar_mat:
+	# 	return
+	# var usable = max(0.0, _displayed_energy - ENERGY_SWIM_COST_MIN) / (1.0 - ENERGY_SWIM_COST_MIN)
+	# _energy_bar_mat.set_shader_parameter("fill_amount", maxf(0.0, usable))
 
 func restart_game():
 	var tracker = get_node_or_null("/root/World/ScoreTracker")
@@ -248,6 +247,7 @@ func _process_noclip(delta: float):
 	energy = 1.0
 	_time += delta
 	_update_energy_bar(delta)
+	_update_light_scale()
 
 	var dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 	velocity = dir * 600.0
