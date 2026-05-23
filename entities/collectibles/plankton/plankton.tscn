@@ -1,8 +1,7 @@
-[gd_scene load_steps=9 format=3 uid="uid://byqhlcf3lamrj"]
+[gd_scene load_steps=10 format=3 uid="uid://byqhlcf3lamrj"]
 
 [ext_resource type="Texture2D" uid="uid://bouqp5avd5oh4" path="res://assets/sprites/plankton/plankton.png" id="1_qp2xr"]
 [ext_resource type="Script" path="res://entities/collectibles/plankton/plankton.gd" id="1_qxkh8"]
-[ext_resource type="Texture2D" uid="uid://bkmt8mu4b4pyv" path="res://assets/sprites/lights/largeLight.png" id="3_fkfsd"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_4dlgd"]
 atlas = ExtResource("1_qp2xr")
@@ -40,6 +39,18 @@ animations = [{
 radius = 31.0
 height = 62.0
 
+[sub_resource type="Gradient" id="Gradient_light"]
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
+offsets = PackedFloat32Array(0, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_light"]
+gradient = SubResource("Gradient_light")
+width = 256
+height = 256
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
 [node name="Plankton" type="Area2D"]
 script = ExtResource("1_qxkh8")
 
@@ -56,9 +67,9 @@ shape = SubResource("CapsuleShape2D_fpvs4")
 [node name="Light" type="Node2D" parent="."]
 
 [node name="LightTexture" type="PointLight2D" parent="Light"]
-scale = Vector2(2, 2)
+scale = Vector2(1.28, 1.28)
 blend_mode = 2
 range_layer_min = -100
-texture = ExtResource("3_fkfsd")
+texture = SubResource("GradientTexture2D_light")
 
 [connection signal="body_entered" from="." to="." method="_on_body_entered"]

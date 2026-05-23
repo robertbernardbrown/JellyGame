@@ -1,7 +1,7 @@
-[gd_scene load_steps=8 format=3 uid="uid://b20unkctncs7u"]
+[gd_scene load_steps=10 format=3 uid="uid://b20unkctncs7u"]
 
 [ext_resource type="Texture2D" uid="uid://e61afiet6q6g" path="res://assets/sprites/plants/plants-Sheet.png" id="1_id5yg"]
-[ext_resource type="Texture2D" uid="uid://bi5nfvja2mumn" path="res://assets/sprites/lights/smallLight.png" id="2_q33hs"]
+[ext_resource type="Script" path="res://entities/light_flicker.gd" id="2_flicker"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_i76r0"]
 atlas = ExtResource("1_id5yg")
@@ -48,6 +48,17 @@ animations = [{
 "speed": 1.0
 }]
 
+[sub_resource type="Gradient" id="Gradient_light"]
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_light"]
+gradient = SubResource("Gradient_light")
+width = 256
+height = 256
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
 [node name="Plants" type="Area2D"]
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
@@ -59,7 +70,8 @@ frame_progress = 0.0587456
 
 [node name="LightTexture" type="PointLight2D" parent="Light"]
 position = Vector2(2, 10)
-scale = Vector2(1.08333, 1.08333)
+scale = Vector2(0.69334, 0.69334)
 blend_mode = 2
 range_layer_min = -100
-texture = ExtResource("2_q33hs")
+texture = SubResource("GradientTexture2D_light")
+script = ExtResource("2_flicker")

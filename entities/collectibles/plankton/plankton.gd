@@ -1,12 +1,14 @@
 extends Area2D
 
 @onready var anim: AnimatedSprite2D = $AnimatedSprite2D
+@onready var _light: PointLight2D = $Light/LightTexture
 
 var _player: Node = null
 var _origin: Vector2
 var _origin_set: bool = false
 var _time: float = 0.0
 var _phase: float
+var _light_phase: float
 var _freq_x: float
 var _freq_y: float
 var _radius_x: float
@@ -18,6 +20,7 @@ func _ready():
 	area_entered.connect(_on_area_entered)
 	_player = get_tree().get_first_node_in_group("Player")
 	_phase = randf() * TAU
+	_light_phase = randf() * TAU
 	_freq_x = randf_range(0.4, 0.7)
 	_freq_y = randf_range(0.45, 0.75)
 	_radius_x = randf_range(10.0, 20.0)
@@ -33,6 +36,9 @@ func _process(delta):
 		sin(_time * _freq_x + _phase) * _radius_x,
 		cos(_time * _freq_y + _phase * 0.7) * _radius_y
 	)
+
+	var f = 1.0 + sin(_time * 0.9 + _light_phase) * 0.08
+	_light.scale = Vector2(1.28 * f, 1.28 * f)
 
 	if _player and global_position.y > _player.global_position.y + get_viewport_rect().size.y:
 		queue_free()

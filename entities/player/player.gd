@@ -18,9 +18,9 @@ const VIEWPORT_WIDTH = 720.0
 const VIEWPORT_HEIGHT = 1280.0
 const SIDE_MARGIN = 60.0  # Buffer past screen edge before death
 const FALL_MARGIN = 80.0  # How far below screen bottom before death
-const ENERGY_DRAIN_RATE = 0.02     # Passive drain per second (empties in ~20s)
-const LIGHT_SCALE_MIN = 8.0
-const LIGHT_SCALE_MAX = 30.0
+const ENERGY_DRAIN_RATE = 0.05     # Passive drain per second (empties in ~20s)
+const LIGHT_SCALE_MIN = 3.99
+const LIGHT_SCALE_MAX = 14.98
 
 var tap_position: Vector2 = Vector2.ZERO
 var is_pressing: bool = false
@@ -226,7 +226,8 @@ func _setup_plankton_counter():
 
 func _update_light_scale():
 	var s = lerp(LIGHT_SCALE_MIN, LIGHT_SCALE_MAX, _displayed_energy)
-	_light.scale = Vector2(s, s)
+	var f = 1.0 + sin(_time * 0.9) * 0.08
+	_light.scale = Vector2(s * f, s * f)
 
 func _update_energy_bar(delta: float):
 	# Drain tracks fast (feels responsive), fill tracks slower (feels rewarding)
