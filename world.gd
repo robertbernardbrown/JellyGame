@@ -172,14 +172,34 @@ func get_screen_bounds() -> Dictionary:
 
 var _next_wall_left: bool = true
 
+const PLAYER_RADIUS = 42.0  # matches CapsuleShape2D radius in player.tscn
+
 func spawn_wall():
 	var on_left = _next_wall_left
 	_next_wall_left = !_next_wall_left
-	var visible_columns = randi_range(MIN_WALL_COLUMNS, MAX_WALL_COLUMNS)
+
+	var bounds = get_screen_bounds()
+	var viewport_width = bounds.right - bounds.left
+
+	# Find the widest visible wall on the opposite side
+	var widest_opposite := 0
+	for child in get_children():
+		if child.is_in_group("Wall") and "is_left_wall" in child and "tile_columns" in child:
+			if child.is_left_wall != on_left:
+				widest_opposite = maxi(widest_opposite, child.tile_columns - 2)
+
+	# Guarantee the passage between any left/right pair fits 2 player widths.
+	# Using MIN_WALL_COLUMNS as the floor ensures even the first wall (no opposite yet)
+	# leaves room for a future opposite wall of at least minimum size.
+	var min_gap := 4.0 * PLAYER_RADIUS  # 2 × diameter = 168 px
+	var max_combined := int((viewport_width - min_gap) / EFFECTIVE_TILE_SIZE)
+	var effective_opposite := maxi(widest_opposite, MIN_WALL_COLUMNS)
+	var col_upper := clampi(max_combined - effective_opposite, MIN_WALL_COLUMNS, MAX_WALL_COLUMNS)
+	var visible_columns := randi_range(MIN_WALL_COLUMNS, col_upper)
+
 	# Add 2 extra columns that extend off-screen to guarantee flush edges
 	var total_columns = visible_columns + 2
 
-	var bounds = get_screen_bounds()
 	var wall_pixel_width = total_columns * EFFECTIVE_TILE_SIZE
 	var wall_pixel_height = 4 * EFFECTIVE_TILE_SIZE  # max wall height (2 + MAX_MIDDLE_FILLS)
 
