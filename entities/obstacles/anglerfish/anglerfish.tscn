@@ -1,0 +1,217 @@
+[gd_scene load_steps=27 format=3]
+
+[ext_resource type="Script" path="res://entities/obstacles/anglerfish/anglerfish.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/sprites/anglerfish/anglerfish-Sheet.png" id="2_body"]
+[ext_resource type="Texture2D" path="res://assets/sprites/anglerfish/anglerfish-eyes-Sheet.png" id="3_eyes"]
+[ext_resource type="Texture2D" path="res://assets/sprites/plankton/plankton.png" id="4_plankton"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_b0"]
+atlas = ExtResource("2_body")
+region = Rect2(0, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_b1"]
+atlas = ExtResource("2_body")
+region = Rect2(64, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_b2"]
+atlas = ExtResource("2_body")
+region = Rect2(128, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_b3"]
+atlas = ExtResource("2_body")
+region = Rect2(192, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_b4"]
+atlas = ExtResource("2_body")
+region = Rect2(256, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_b5"]
+atlas = ExtResource("2_body")
+region = Rect2(320, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_b6"]
+atlas = ExtResource("2_body")
+region = Rect2(384, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_b7"]
+atlas = ExtResource("2_body")
+region = Rect2(448, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_b8"]
+atlas = ExtResource("2_body")
+region = Rect2(512, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_b9"]
+atlas = ExtResource("2_body")
+region = Rect2(576, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_e0"]
+atlas = ExtResource("3_eyes")
+region = Rect2(0, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_e1"]
+atlas = ExtResource("3_eyes")
+region = Rect2(64, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_e2"]
+atlas = ExtResource("3_eyes")
+region = Rect2(128, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_e3"]
+atlas = ExtResource("3_eyes")
+region = Rect2(192, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_p0"]
+atlas = ExtResource("4_plankton")
+region = Rect2(0, 16, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_p1"]
+atlas = ExtResource("4_plankton")
+region = Rect2(16, 16, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_p2"]
+atlas = ExtResource("4_plankton")
+region = Rect2(32, 16, 16, 16)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_body"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_b0")
+}],
+"loop": true,
+"name": &"Idle",
+"speed": 6.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_b0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_b1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_b2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_b3")
+}],
+"loop": false,
+"name": &"MouthOpening",
+"speed": 18.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_b4")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_b5")
+}],
+"loop": true,
+"name": &"MouthHold",
+"speed": 6.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_b6")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_b7")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_b8")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_b9")
+}],
+"loop": false,
+"name": &"MouthSnap",
+"speed": 18.0
+}]
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_eyes"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_e0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_e1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_e2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_e3")
+}],
+"loop": false,
+"name": &"EyesReveal",
+"speed": 10.0
+}]
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_lure"]
+animations = [{
+"frames": [{
+"duration": 0.5,
+"texture": SubResource("AtlasTexture_p0")
+}, {
+"duration": 0.2,
+"texture": SubResource("AtlasTexture_p1")
+}, {
+"duration": 0.2,
+"texture": SubResource("AtlasTexture_p2")
+}, {
+"duration": 0.2,
+"texture": SubResource("AtlasTexture_p1")
+}],
+"loop": true,
+"name": &"Idle",
+"speed": 1.0
+}]
+
+[sub_resource type="Gradient" id="Gradient_lure_light"]
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
+offsets = PackedFloat32Array(0, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_lure_light"]
+gradient = SubResource("Gradient_lure_light")
+width = 256
+height = 256
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_col"]
+radius = 80.0
+
+[node name="Anglerfish" type="Area2D"]
+z_index = -1
+script = ExtResource("1_script")
+
+[node name="BodySprite" type="AnimatedSprite2D" parent="."]
+scale = Vector2(4, 4)
+sprite_frames = SubResource("SpriteFrames_body")
+animation = &"Idle"
+
+[node name="EyesSprite" type="AnimatedSprite2D" parent="."]
+scale = Vector2(4, 4)
+sprite_frames = SubResource("SpriteFrames_eyes")
+animation = &"EyesReveal"
+
+[node name="Lure" type="AnimatedSprite2D" parent="."]
+position = Vector2(0, -40)
+scale = Vector2(4, 4)
+sprite_frames = SubResource("SpriteFrames_lure")
+animation = &"Idle"
+
+[node name="LureLight" type="Node2D" parent="."]
+position = Vector2(0, -40)
+
+[node name="LightTexture" type="PointLight2D" parent="LureLight"]
+scale = Vector2(1.28, 1.28)
+blend_mode = 2
+range_layer_min = -100
+texture = SubResource("GradientTexture2D_lure_light")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_col")

@@ -47,7 +47,7 @@ func _on_body_entered(body):
 	if body.is_in_group("Player"):
 		var scoreTracker = get_node("/root/World/ScoreTracker")
 		scoreTracker.increment_score()
-		body.restore_energy(0.25)
+		body.restore_energy(0.1)
 		queue_free()
 
 func _on_area_entered(area):

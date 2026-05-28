@@ -4,13 +4,14 @@ const WALL_SPAWN_INTERVAL = 3.0
 var PLANKTON_SPAWN_INTERVAL = 4.0
 const URCHIN_SPAWN_INTERVAL = 10.0
 const PUFFERFISH_SPAWN_INTERVAL = 12.0
+const ANGLERFISH_SPAWN_INTERVAL = 45.0
 
 # Adjust this to control the minimum darkness colour (deep blue = darker/moodier, lighter = more visible)
 const AMBIENT_FLOOR  = Color(0.02, 0.04, 0.18, 1.0)
 const AMBIENT_START  = AMBIENT_FLOOR
-const AMBIENT_DARK   = Color(0.15, 0.22, 0.55, 1.0)
-const DARK_START_DEPTH = 50.0    # metres before darkening kicks in
-const DARK_FULL_DEPTH  = 500.0    # metres where max darkness is reached
+const AMBIENT_DARK   = Color(0.05, 0.09, 0.25, 1.0)
+const DARK_START_DEPTH = 30.0    # metres before darkening kicks in
+const DARK_FULL_DEPTH  = 50.0    # metres where max darkness is reached
 
 var _canvas_modulate: CanvasModulate
 var _bg: Node
@@ -26,6 +27,7 @@ const WALL_SCENE = preload("res://entities/obstacles/wall/wall.tscn")
 const PLANKTON_SCENE = preload("res://entities/collectibles/plankton/plankton.tscn")
 const URCHIN_SCENE = preload("res://entities/obstacles/urchin/urchin.tscn")
 const PUFFERFISH_SCENE = preload("res://entities/obstacles/pufferfish/pufferfish.tscn")
+const ANGLERFISH_SCENE = preload("res://entities/obstacles/anglerfish/anglerfish.tscn")
 const SCORE_TRACKER_SCENE = preload("res://ui/score_tracker/score_tracker.tscn")
 
 # Wall tiles are 16px at 4x scale = 64px each.
@@ -48,6 +50,7 @@ func _ready():
 	start_timer(PLANKTON_SPAWN_INTERVAL, _on_PlanktonSpawnTimer_timeout, true)
 	start_timer(URCHIN_SPAWN_INTERVAL, _on_UrchinSpawnTimer_timeout, false)
 	start_timer(PUFFERFISH_SPAWN_INTERVAL, _on_PufferfishSpawnTimer_timeout, false)
+	start_timer(ANGLERFISH_SPAWN_INTERVAL, _on_AnglerSpawnTimer_timeout, false)
 	var score_tracker_instance = SCORE_TRACKER_SCENE.instantiate() as Node
 	add_child(score_tracker_instance)
 	_canvas_modulate = $CanvasModulate
@@ -85,6 +88,16 @@ func spawn_urchin():
 	add_child(urchin)
 	var x = URCHIN_LEFT_X if on_left else URCHIN_RIGHT_X
 	urchin.global_position = Vector2(x, bounds.top - 50.0)
+
+func _on_AnglerSpawnTimer_timeout():
+	spawn_anglerfish()
+
+func spawn_anglerfish():
+	var bounds = get_screen_bounds()
+	var spawn_x = randf_range(bounds.left + 180.0, bounds.right - 180.0)
+	var angler = ANGLERFISH_SCENE.instantiate()
+	add_child(angler)
+	angler.global_position = Vector2(spawn_x, bounds.top - 50.0)
 
 func spawn_pufferfish():
 	var bounds = get_screen_bounds()
@@ -190,4 +203,3 @@ func spawn_wall():
 	wall.setup(total_columns, on_left)
 	add_child(wall)
 	wall.global_position = spawn_pos
-
