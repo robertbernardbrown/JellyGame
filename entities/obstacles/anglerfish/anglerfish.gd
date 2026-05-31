@@ -3,7 +3,6 @@ extends Area2D
 const LURE_OFFSET = Vector2(0, -40)
 const TRIGGER_DISTANCE = 90.0   # px from lure centre to player before reveal starts
 const ESCAPE_WINDOW = .5       # seconds the mouth holds open
-const MOUTH_RADIUS = 110.0      # kill check radius at the snap frame — tune if needed
 const BODY_FADE_DURATION = 0.25 # how fast the body materialises on reveal
 const SNAP_RESET_PAUSE = 0.4    # how long the idle pose shows after the snap before fading
 
@@ -11,6 +10,7 @@ const SNAP_RESET_PAUSE = 0.4    # how long the idle pose shows after the snap be
 @onready var eyes_spr: AnimatedSprite2D = $EyesSprite
 @onready var lure: AnimatedSprite2D = $Lure
 @onready var _lure_light: Node2D = $LureLight
+@onready var _collision: CollisionShape2D = $CollisionShape2D
 
 enum State { LURING, EYES_REVEAL, MOUTH_OPENING, MOUTH_HOLD, MOUTH_SNAP, RETREATING }
 var _state: State = State.LURING
@@ -39,7 +39,6 @@ func _ready():
 	body_spr.play("Idle")
 	eyes_spr.animation_finished.connect(_on_eyes_animation_finished)
 	body_spr.animation_finished.connect(_on_body_animation_finished)
-	body_spr.frame_changed.connect(_on_body_frame_changed)
 	lure.play("Idle")
 	_player = get_tree().get_first_node_in_group("Player")
 	_phase = randf() * TAU
@@ -123,6 +122,10 @@ func _set_state(new_state: State):
 
 		State.MOUTH_SNAP:
 			body_spr.play("MouthSnap")
+			_kill_tween()
+			_tween = create_tween()
+			_tween.tween_interval(1.0 / 18.0)
+			_tween.tween_callback(func(): _collision.disabled = false)
 
 		State.RETREATING:
 			_kill_tween()
@@ -146,6 +149,7 @@ func _on_body_animation_finished():
 		State.MOUTH_OPENING:
 			_set_state(State.MOUTH_HOLD)
 		State.MOUTH_SNAP:
+			_collision.disabled = true
 			# Return to idle pose (eyes open, mouth closed) for a beat before fading
 			body_spr.play("Idle")
 			_kill_tween()
@@ -153,12 +157,9 @@ func _on_body_animation_finished():
 			_tween.tween_interval(SNAP_RESET_PAUSE)
 			_tween.tween_callback(func(): _set_state(State.RETREATING))
 
-func _on_body_frame_changed():
-	# Frame index 2 of MouthSnap = the squish/impact frame (sheet frame 9)
-	# This is the moment the mouth closes — kill check fires here
-	if _state == State.MOUTH_SNAP and body_spr.frame == 2:
-		if _player and global_position.distance_to(_player.global_position) < MOUTH_RADIUS:
-			_player.restart_game()
+func _on_body_entered(body):
+	if body.is_in_group("Player"):
+		body.restart_game()
 
 func _kill_tween():
 	if _tween:

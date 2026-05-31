@@ -5,6 +5,7 @@ var PLANKTON_SPAWN_INTERVAL = 4.0
 const URCHIN_SPAWN_INTERVAL = 10.0
 const PUFFERFISH_SPAWN_INTERVAL = 12.0
 const ANGLERFISH_SPAWN_INTERVAL = 45.0
+const EEL_SPAWN_INTERVAL = 18.0
 
 # Adjust this to control the minimum darkness colour (deep blue = darker/moodier, lighter = more visible)
 const AMBIENT_FLOOR  = Color(0.02, 0.04, 0.18, 1.0)
@@ -28,6 +29,7 @@ const PLANKTON_SCENE = preload("res://entities/collectibles/plankton/plankton.ts
 const URCHIN_SCENE = preload("res://entities/obstacles/urchin/urchin.tscn")
 const PUFFERFISH_SCENE = preload("res://entities/obstacles/pufferfish/pufferfish.tscn")
 const ANGLERFISH_SCENE = preload("res://entities/obstacles/anglerfish/anglerfish.tscn")
+const EEL_SCENE = preload("res://entities/obstacles/eel/eel.tscn")
 const SCORE_TRACKER_SCENE = preload("res://ui/score_tracker/score_tracker.tscn")
 
 # Wall tiles are 16px at 4x scale = 64px each.
@@ -51,6 +53,7 @@ func _ready():
 	start_timer(URCHIN_SPAWN_INTERVAL, _on_UrchinSpawnTimer_timeout, false)
 	start_timer(PUFFERFISH_SPAWN_INTERVAL, _on_PufferfishSpawnTimer_timeout, false)
 	start_timer(ANGLERFISH_SPAWN_INTERVAL, _on_AnglerSpawnTimer_timeout, false)
+	start_timer(EEL_SPAWN_INTERVAL, _on_EelSpawnTimer_timeout, false)
 	var score_tracker_instance = SCORE_TRACKER_SCENE.instantiate() as Node
 	add_child(score_tracker_instance)
 	_canvas_modulate = $CanvasModulate
@@ -223,3 +226,37 @@ func spawn_wall():
 	wall.setup(total_columns, on_left)
 	add_child(wall)
 	wall.global_position = spawn_pos
+
+func _on_EelSpawnTimer_timeout():
+	spawn_eel()
+
+func spawn_eel():
+	var bounds = get_screen_bounds()
+	var on_left = randi() % 2 == 0
+	var spawn_y := 0.0
+	var attempts := 0
+	while attempts < 10:
+		spawn_y = randf_range(bounds.top + 150.0, bounds.top + 550.0)
+		if _eel_y_clear(on_left, spawn_y):
+			break
+		attempts += 1
+	if attempts >= 10:
+		return
+	var eel = EEL_SCENE.instantiate()
+	eel.setup(on_left)
+	add_child(eel)
+	eel.global_position.y = spawn_y
+
+# Returns true if spawn_y doesn't overlap any wall on the given side.
+func _eel_y_clear(on_left: bool, spawn_y: float) -> bool:
+	var eel_half_h = 64.0  # 32px sprite * 4x scale / 2
+	for child in get_children():
+		if not child.is_in_group("Wall"):
+			continue
+		if "is_left_wall" not in child or child.is_left_wall != on_left:
+			continue
+		var wall_top    = child.global_position.y
+		var wall_bottom = wall_top + 4.0 * EFFECTIVE_TILE_SIZE
+		if spawn_y + eel_half_h > wall_top and spawn_y - eel_half_h < wall_bottom:
+			return false
+	return true

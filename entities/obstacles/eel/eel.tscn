@@ -1,0 +1,103 @@
+[gd_scene load_steps=14 format=3]
+
+[ext_resource type="Script" path="res://entities/obstacles/eel/eel.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/sprites/eel/eel-Sheet.png" id="2_sheet"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_0"]
+atlas = ExtResource("2_sheet")
+region = Rect2(0, 0, 96, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_1"]
+atlas = ExtResource("2_sheet")
+region = Rect2(96, 0, 96, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_2"]
+atlas = ExtResource("2_sheet")
+region = Rect2(192, 0, 96, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_3"]
+atlas = ExtResource("2_sheet")
+region = Rect2(288, 0, 96, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_4"]
+atlas = ExtResource("2_sheet")
+region = Rect2(384, 0, 96, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_5"]
+atlas = ExtResource("2_sheet")
+region = Rect2(480, 0, 96, 32)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_eel"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_1")
+}],
+"loop": true,
+"name": &"Idle",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_3")
+}],
+"loop": true,
+"name": &"LungeOpen",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 0.25,
+"texture": SubResource("AtlasTexture_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_5")
+}],
+"loop": false,
+"name": &"Snap",
+"speed": 16.0
+}]
+
+[sub_resource type="Gradient" id="Gradient_eye"]
+colors = PackedColorArray(1, 0.65, 0.1, 1, 1, 0.65, 0.1, 0)
+offsets = PackedFloat32Array(0, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_eye"]
+gradient = SubResource("Gradient_eye")
+width = 256
+height = 256
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_kill"]
+radius = 60.0
+
+[node name="Eel" type="Area2D"]
+script = ExtResource("1_script")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+scale = Vector2(4, 4)
+sprite_frames = SubResource("SpriteFrames_eel")
+animation = &"Idle"
+
+[node name="EyeLight" type="PointLight2D" parent="."]
+blend_mode = 0
+energy = 0.0
+texture_scale = 0.5
+range_layer_min = -100
+texture = SubResource("GradientTexture2D_eye")
+
+[node name="KillShape" type="CollisionShape2D" parent="."]
+disabled = true
+shape = SubResource("CircleShape2D_kill")
+
+[connection signal="body_entered" from="." to="." method="_on_body_entered"]
