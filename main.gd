@@ -144,7 +144,9 @@ func _load_high_score():
 		$HighScore.text = "Best: 0  |  0m"
 
 func _on_start_pressed():
+	get_tree().set_meta("free_swim", false)
 	get_tree().change_scene_to_file("res://world.tscn")
 
-func _on_quit_pressed():
-	get_tree().quit()
+func _on_free_swim_pressed():
+	get_tree().set_meta("free_swim", true)
+	get_tree().change_scene_to_file("res://world.tscn")

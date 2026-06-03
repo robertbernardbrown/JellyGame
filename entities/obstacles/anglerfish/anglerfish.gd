@@ -159,7 +159,7 @@ func _on_body_animation_finished():
 
 func _on_body_entered(body):
 	if body.is_in_group("Player"):
-		body.restart_game()
+		body._trigger_death()
 
 func _kill_tween():
 	if _tween:

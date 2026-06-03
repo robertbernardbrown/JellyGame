@@ -18,9 +18,12 @@ const VIEWPORT_WIDTH = 720.0
 const VIEWPORT_HEIGHT = 1280.0
 const SIDE_MARGIN = 60.0  # Buffer past screen edge before death
 const FALL_MARGIN = 80.0  # How far below screen bottom before death
-const ENERGY_DRAIN_RATE = 0.05     # Passive drain per second (empties in ~20s)
+const ENERGY_SWIM_COST_MIN = 0.01  # Cost for a minimal tap
+const ENERGY_SWIM_COST_MAX = 0.06  # Cost for a full-charge burst
 const LIGHT_SCALE_MIN = 3.99
 const LIGHT_SCALE_MAX = 14.98
+const MIN_PULL_DISTANCE = 50.0   # pixels of drag before aim activates
+const PULL_FULL_DISTANCE = 150.0 # pixels of drag for pull_factor to reach 1.0
 
 var tap_position: Vector2 = Vector2.ZERO
 var is_pressing: bool = false
@@ -31,8 +34,13 @@ var pulse_time: float = 0.0
 var energy: float = 1.0
 var _displayed_energy: float = 1.0
 var _energy_bar_mat: ShaderMaterial
+var _energy_bar: TextureRect
 var _flash_amount: float = 0.0
 var _time: float = 0.0
+var _dying: bool = false
+var _death_velocity: float = 0.0
+var _free_swim: bool = false
+var current_touch_pos: Vector2 = Vector2.ZERO
 
 const DEBUG_JUMP_METERS = 100.0
 var _debug_noclip: bool = false
@@ -44,10 +52,16 @@ func _ready():
 	var mat = ShaderMaterial.new()
 	mat.shader = load("res://entities/player/flash.gdshader")
 	anim.material = mat
-	# _setup_energy_bar.call_deferred()
+	_free_swim = get_tree().get_meta("free_swim", false)
+	if not _free_swim:
+		_setup_energy_bar.call_deferred()
 	_setup_plankton_counter.call_deferred()
 
 func _process(delta):
+	if _dying:
+		_process_death(delta)
+		return
+
 	if _debug_noclip:
 		_process_noclip(delta)
 		return
@@ -60,7 +74,6 @@ func _process(delta):
 	# Gravity layered on top of drag
 	velocity.y += GRAVITY * delta
 
-	energy = max(0.0, energy - ENERGY_DRAIN_RATE * delta)
 	_time += delta
 	_update_energy_bar(delta)
 	_update_light_scale()
@@ -111,31 +124,71 @@ func _draw():
 		return
 	var charge = _get_charge_percent()
 	var radius = lerp(MIN_RING_RADIUS, MAX_RING_RADIUS, charge)
-
-	# Glow brightens and shifts from dim teal to bright cyan-white as charge builds
 	var base_alpha = lerp(0.15, 0.5, charge)
-	# Subtle pulse on the opacity so it feels alive
 	var pulse = sin(pulse_time) * 0.08
 	var alpha = clamp(base_alpha + pulse, 0.05, 0.6)
-
-	# Color shifts from deep teal at low charge to bright cyan-white at full
 	var color = Color(
-		lerp(0.0, 0.7, charge),   # R: stays low, rises slightly at full
-		lerp(0.5, 1.0, charge),   # G: teal to bright
-		lerp(0.6, 1.0, charge),   # B: always strong
+		lerp(0.0, 0.7, charge),
+		lerp(0.5, 1.0, charge),
+		lerp(0.6, 1.0, charge),
 		alpha
 	)
+	_draw_charge_shape(_get_aim_direction(), radius, _get_pull_factor(), color)
 
-	# Outer ring
-	draw_arc(Vector2.ZERO, radius, 0, TAU, 64, color, RING_WIDTH, true)
+func _draw_charge_shape(aim_dir: Vector2, radius: float, pull_factor: float, color: Color):
+	var n_points := 64
+	var launch_angle := atan2(aim_dir.y, aim_dir.x)
+	# Arc spans full circle at no pull, back-semicircle at full pull
+	var arc_span: float = lerp(TAU, PI, pull_factor)
+	var arc_start: float = (launch_angle + PI) - arc_span / 2.0
+	# Tip extends from the circle edge outward in the launch direction
+	var tip_dist: float = radius * (1.0 + 1.5 * pull_factor)
+	var tip := aim_dir * tip_dist
 
-	# Softer inner glow ring — wider, more transparent
-	var inner_color = Color(color.r, color.g, color.b, alpha * 0.3)
-	draw_arc(Vector2.ZERO, radius * 0.85, 0, TAU, 64, inner_color, RING_WIDTH * 3.0, true)
+	var poly := PackedVector2Array()
+	for i in range(n_points + 1):
+		var t := float(i) / n_points
+		var angle := arc_start + t * arc_span
+		poly.append(Vector2(cos(angle), sin(angle)) * radius)
+	if pull_factor > 0.01:
+		poly.append(tip)
+
+	draw_colored_polygon(poly, Color(color.r, color.g, color.b, color.a * 0.25))
+
+	var outline := PackedVector2Array(poly)
+	outline.append(outline[0])
+	draw_polyline(outline, color, RING_WIDTH, true)
+
+	# Inner glow — slightly smaller, softer
+	var ir := radius * 0.85
+	var inner_poly := PackedVector2Array()
+	for i in range(n_points + 1):
+		var t := float(i) / n_points
+		var angle := arc_start + t * arc_span
+		inner_poly.append(Vector2(cos(angle), sin(angle)) * ir)
+	if pull_factor > 0.01:
+		inner_poly.append(aim_dir * (ir * (1.0 + 1.5 * pull_factor)))
+	draw_colored_polygon(inner_poly, Color(color.r, color.g, color.b, color.a * 0.12))
 
 func _get_charge_percent() -> float:
 	var held = Time.get_ticks_msec() / 1000.0 - press_start_time
 	return clamp(held / MAX_CHARGE_TIME, 0.0, 1.0)
+
+func _get_aim_direction() -> Vector2:
+	var drag := current_touch_pos - tap_position
+	if drag.length() < MIN_PULL_DISTANCE:
+		return Vector2.UP
+	# Slingshot: launch opposite the drag vector
+	var dir := -drag.normalized()
+	# No downward launches — clamp Y so we never go below horizontal
+	dir.y = minf(dir.y, 0.0)
+	if dir.is_zero_approx():
+		return Vector2.UP
+	return dir.normalized()
+
+func _get_pull_factor() -> float:
+	var drag_len := (current_touch_pos - tap_position).length()
+	return clamp((drag_len - MIN_PULL_DISTANCE) / (PULL_FULL_DISTANCE - MIN_PULL_DISTANCE), 0.0, 1.0)
 
 func _unhandled_input(event):
 	if event is InputEventKey and event.pressed and not event.echo:
@@ -149,20 +202,27 @@ func _unhandled_input(event):
 				if _debug_noclip:
 					_debug_teleport(-100.0)
 
+	if event is InputEventMouseMotion and is_pressing:
+		current_touch_pos = get_global_mouse_position()
+		queue_redraw()
+
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if _dying:
+			return
 		if event.pressed:
 			tap_position = get_global_mouse_position()
+			current_touch_pos = tap_position
 			press_start_time = Time.get_ticks_msec() / 1000.0
 			anim.play('Set')
 			is_pressing = true
 		elif is_pressing:
 			var charge = _get_charge_percent()
 			var speed = lerp(MIN_PROPEL_SPEED, MAX_PROPEL_SPEED, charge)
-			var diff_x = tap_position.x - global_position.x
-			var x_factor = clamp(diff_x / 200.0, -1.0, 1.0)
-			var y_factor = -sqrt(1.0 - x_factor * x_factor)
-			y_factor = min(y_factor, -0.15)
-			velocity = Vector2(x_factor, y_factor).normalized() * speed
+			velocity = _get_aim_direction() * speed
+			if not _free_swim:
+				energy = maxf(0.0, energy - lerp(ENERGY_SWIM_COST_MIN, ENERGY_SWIM_COST_MAX, charge))
+				if energy <= 0.0:
+					_trigger_death()
 			anim.play('Float')
 			is_pressing = false
 
@@ -183,12 +243,15 @@ func _setup_energy_bar():
 	var mat = ShaderMaterial.new()
 	mat.shader = load("res://entities/player/energy_bar.gdshader")
 	mat.set_shader_parameter("fill_amount", 1.0)
+	bar.stretch_mode = TextureRect.STRETCH_SCALE
+	bar.size = Vector2(VIEWPORT_WIDTH, 80)
 	bar.material = mat
 	_energy_bar_mat = mat
+	_energy_bar = bar
 
 	hud.add_child(bar)
 	var vh = get_viewport().get_visible_rect().size.y
-	bar.position = Vector2(0, vh - 57)
+	bar.position = Vector2(0, vh - 72)
 
 
 func _setup_plankton_counter():
@@ -233,10 +296,50 @@ func _update_energy_bar(delta: float):
 	# Drain tracks fast (feels responsive), fill tracks slower (feels rewarding)
 	var speed = 10.0 if energy < _displayed_energy else 5.0
 	_displayed_energy = lerp(_displayed_energy, energy, speed * delta)
-	# if not _energy_bar_mat:
-	# 	return
-	# var usable = max(0.0, _displayed_energy - ENERGY_SWIM_COST_MIN) / (1.0 - ENERGY_SWIM_COST_MIN)
-	# _energy_bar_mat.set_shader_parameter("fill_amount", maxf(0.0, usable))
+	if not _energy_bar_mat:
+		return
+	_energy_bar_mat.set_shader_parameter("fill_amount", _displayed_energy)
+
+func _trigger_death():
+	if _dying:
+		return
+	_dying = true
+	is_pressing = false
+	velocity = Vector2.ZERO
+	_displayed_energy = 0.0
+	if _energy_bar_mat:
+		_energy_bar_mat.set_shader_parameter("fill_amount", 0.0)
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	get_tree().paused = true
+	anim.scale = Vector2(4, -4)
+	anim.play('Float')
+	_show_game_over()
+
+func _show_game_over():
+	var hud = get_node_or_null("/root/World/HUD")
+	if not hud:
+		return
+	var label = Label.new()
+	label.text = "GAME OVER"
+	var bungee = load("res://assets/fonts/bungee/Bungee-Regular.ttf")
+	label.add_theme_font_override("font", bungee)
+	label.add_theme_font_size_override("font_size", 90)
+	label.add_theme_color_override("font_color", Color(0.0, 0.85, 1.0))
+	label.add_theme_color_override("font_shadow_color", Color(0.0, 0.3, 0.5, 0.6))
+	label.add_theme_constant_override("shadow_offset_x", 5)
+	label.add_theme_constant_override("shadow_offset_y", 5)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.custom_minimum_size = Vector2(VIEWPORT_WIDTH, 0)
+	label.position = Vector2(0, VIEWPORT_HEIGHT / 2.0 - 80.0)
+	hud.add_child(label)
+
+func _process_death(delta: float):
+	_death_velocity += GRAVITY * delta
+	global_position.y += _death_velocity * delta
+	var screen_bottom = highest_y + VIEWPORT_HEIGHT / 2.0
+	if global_position.y > screen_bottom + 300.0:
+		get_tree().paused = false
+		restart_game()
 
 func restart_game():
 	var tracker = get_node_or_null("/root/World/ScoreTracker")

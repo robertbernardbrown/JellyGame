@@ -2,7 +2,8 @@ extends Area2D
 
 const HALF_W        = 192.0   # half of 384px on-screen sprite width (96 * 4 / 2)
 const PEEK_DIST     = 130.0   # px from wall edge the head reaches on peek
-const LUNGE_DIST    = 265.0   # px from wall edge on full lunge
+const LUNGE_DIST_MIN = 220.0   # shortest possible lunge
+const LUNGE_DIST_MAX = 360.0   # longest possible lunge (tail stays off-screen below 384)
 
 const SLIDE_IN_TIME   = 0.7
 const PEEK_HOLD_TIME  = 1.2
@@ -36,10 +37,18 @@ var _on_left:     bool  = true
 var _hidden_x:    float
 var _peek_x:      float
 var _lunge_x:     float
+var _left_edge:   float
+var _right_edge:  float
 var _tween:       Tween = null
 var _eye_tween:   Tween = null
-var _initialized: bool  = false
 var _player:      Node  = null
+
+var _time:          float = 0.0
+var _base_y:        float = 0.0
+var _base_y_set:    bool  = false
+var _phase:         float
+var _freq_y:        float
+var _radius_y:      float
 
 func setup(on_left: bool):
 	_on_left = on_left
@@ -50,6 +59,9 @@ func _ready():
 	kill_col.disabled = true
 	eye_light.energy = 0.0
 	_player = get_tree().get_first_node_in_group("Player")
+	_phase    = randf() * TAU
+	_freq_y   = randf_range(0.4, 0.75)
+	_radius_y = randf_range(7.0, 13.0)
 
 	var eye_x  =  EYE_OFFSET_X  if _on_left else -EYE_OFFSET_X
 	var head_x =  HEAD_OFFSET_X if _on_left else -HEAD_OFFSET_X
@@ -59,27 +71,35 @@ func _ready():
 	var ctf = get_canvas_transform()
 	var vp  = get_viewport_rect().size
 	var inv = ctf.affine_inverse()
-	var left_edge  = (inv * Vector2.ZERO).x
-	var right_edge = (inv * Vector2(vp.x, 0.0)).x
+	_left_edge  = (inv * Vector2.ZERO).x
+	_right_edge = (inv * Vector2(vp.x, 0.0)).x
 
 	if _on_left:
-		_hidden_x = left_edge  - HALF_W - 10.0
-		_peek_x   = left_edge  + PEEK_DIST  - HALF_W
-		_lunge_x  = left_edge  + LUNGE_DIST - HALF_W
+		_hidden_x = _left_edge  - HALF_W - 10.0
+		_peek_x   = _left_edge  + PEEK_DIST - HALF_W
 	else:
-		_hidden_x = right_edge + HALF_W + 10.0
-		_peek_x   = right_edge - PEEK_DIST  + HALF_W
-		_lunge_x  = right_edge - LUNGE_DIST + HALF_W
+		_hidden_x = _right_edge + HALF_W + 10.0
+		_peek_x   = _right_edge - PEEK_DIST + HALF_W
 
 	position.x = _hidden_x
 	_run_sequence()
 
-func _process(_delta):
+func _process(delta):
+	# Capture base Y on first frame — world.gd sets global_position.y after add_child()
+	if not _base_y_set:
+		_base_y = position.y
+		_base_y_set = true
+
+	_time += delta
+	position.y = _base_y + sin(_time * _freq_y + _phase) * _radius_y
+
 	if _player and global_position.y > _player.global_position.y + get_viewport_rect().size.y:
 		_kill_tween()
 		queue_free()
 
 func _run_sequence():
+	var dist = randf_range(LUNGE_DIST_MIN, LUNGE_DIST_MAX)
+	_lunge_x = _left_edge + dist - HALF_W if _on_left else _right_edge - dist + HALF_W
 	_kill_tween()
 	_tween = create_tween()
 
@@ -158,4 +178,4 @@ func _kill_tween():
 
 func _on_body_entered(body):
 	if body.is_in_group("Player"):
-		body.restart_game()
+		body._trigger_death()

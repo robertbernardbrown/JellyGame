@@ -11,9 +11,9 @@ script = ExtResource("1_n2hda")
 [node name="JellyBloomBehind" type="Node2D" parent="."]
 
 [node name="Title" type="Label" parent="."]
-offset_top = 100.0
+offset_top = 220.0
 offset_right = 720.0
-offset_bottom = 250.0
+offset_bottom = 370.0
 text = "JELLY UP"
 horizontal_alignment = 1
 
@@ -25,20 +25,20 @@ text = "Best: 0"
 horizontal_alignment = 1
 
 [node name="Start" type="Button" parent="."]
-offset_left = 180.0
+offset_left = 140.0
 offset_top = 790.0
-offset_right = 540.0
+offset_right = 580.0
 offset_bottom = 910.0
 text = "Dive In"
 
 [node name="Quit" type="Button" parent="."]
-offset_left = 180.0
+offset_left = 140.0
 offset_top = 950.0
-offset_right = 540.0
+offset_right = 580.0
 offset_bottom = 1070.0
-text = "Surface"
+text = "Free Swim"
 
 [node name="JellyBloom" type="Node2D" parent="."]
 
 [connection signal="pressed" from="Start" to="." method="_on_start_pressed"]
-[connection signal="pressed" from="Quit" to="." method="_on_quit_pressed"]
+[connection signal="pressed" from="Quit" to="." method="_on_free_swim_pressed"]

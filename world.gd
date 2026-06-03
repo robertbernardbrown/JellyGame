@@ -6,6 +6,7 @@ const URCHIN_SPAWN_INTERVAL = 10.0
 const PUFFERFISH_SPAWN_INTERVAL = 12.0
 const ANGLERFISH_SPAWN_INTERVAL = 45.0
 const EEL_SPAWN_INTERVAL = 18.0
+const HYDROVENT_SPAWN_INTERVAL = 15.0
 
 # Adjust this to control the minimum darkness colour (deep blue = darker/moodier, lighter = more visible)
 const AMBIENT_FLOOR  = Color(0.02, 0.04, 0.18, 1.0)
@@ -30,6 +31,7 @@ const URCHIN_SCENE = preload("res://entities/obstacles/urchin/urchin.tscn")
 const PUFFERFISH_SCENE = preload("res://entities/obstacles/pufferfish/pufferfish.tscn")
 const ANGLERFISH_SCENE = preload("res://entities/obstacles/anglerfish/anglerfish.tscn")
 const EEL_SCENE = preload("res://entities/obstacles/eel/eel.tscn")
+const HYDROVENT_SCENE = preload("res://entities/obstacles/hydrovent/hydrovent.tscn")
 const SCORE_TRACKER_SCENE = preload("res://ui/score_tracker/score_tracker.tscn")
 
 # Wall tiles are 16px at 4x scale = 64px each.
@@ -54,6 +56,7 @@ func _ready():
 	start_timer(PUFFERFISH_SPAWN_INTERVAL, _on_PufferfishSpawnTimer_timeout, false)
 	start_timer(ANGLERFISH_SPAWN_INTERVAL, _on_AnglerSpawnTimer_timeout, false)
 	start_timer(EEL_SPAWN_INTERVAL, _on_EelSpawnTimer_timeout, false)
+	start_timer(HYDROVENT_SPAWN_INTERVAL, _on_HydroventSpawnTimer_timeout, false)
 	var score_tracker_instance = SCORE_TRACKER_SCENE.instantiate() as Node
 	add_child(score_tracker_instance)
 	_canvas_modulate = $CanvasModulate
@@ -229,6 +232,30 @@ func spawn_wall():
 
 func _on_EelSpawnTimer_timeout():
 	spawn_eel()
+
+func _on_HydroventSpawnTimer_timeout():
+	spawn_hydrovent()
+
+func spawn_hydrovent():
+	_try_spawn_vent_side(true)
+	_try_spawn_vent_side(false)
+
+func _try_spawn_vent_side(on_left: bool):
+	var bounds = get_screen_bounds()
+	var spawn_y := 0.0
+	var attempts := 0
+	while attempts < 10:
+		spawn_y = randf_range(bounds.top - 600.0, bounds.top - 100.0)
+		if _eel_y_clear(on_left, spawn_y):
+			break
+		attempts += 1
+	if attempts >= 10:
+		return
+	var vent = HYDROVENT_SCENE.instantiate()
+	vent.setup(on_left)
+	add_child(vent)
+	var x = URCHIN_LEFT_X if on_left else URCHIN_RIGHT_X
+	vent.global_position = Vector2(x, spawn_y)
 
 func spawn_eel():
 	var bounds = get_screen_bounds()
