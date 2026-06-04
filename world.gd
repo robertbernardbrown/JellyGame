@@ -1,12 +1,12 @@
 extends Node2D
 
-const WALL_SPAWN_INTERVAL = 3.0
-var PLANKTON_SPAWN_INTERVAL = 4.0
-const URCHIN_SPAWN_INTERVAL = 10.0
+const WALL_SPAWN_INTERVAL = 3.5
+var PLANKTON_SPAWN_INTERVAL = 2.0
+const URCHIN_SPAWN_INTERVAL = 13.0
 const PUFFERFISH_SPAWN_INTERVAL = 12.0
-const ANGLERFISH_SPAWN_INTERVAL = 45.0
+const ANGLERFISH_SPAWN_INTERVAL = 28.0
 const EEL_SPAWN_INTERVAL = 18.0
-const HYDROVENT_SPAWN_INTERVAL = 15.0
+const HYDROVENT_SPAWN_INTERVAL = 20.0
 
 # Adjust this to control the minimum darkness colour (deep blue = darker/moodier, lighter = more visible)
 const AMBIENT_FLOOR  = Color(0.02, 0.04, 0.18, 1.0)
@@ -65,6 +65,7 @@ func _ready():
 	_player = get_node_or_null("Player")
 	if _player:
 		_player_start_y = _player.global_position.y
+	call_deferred("_spawn_starter_plankton")
 
 func _process(_delta):
 	if not _player:
@@ -76,6 +77,11 @@ func _process(_delta):
 	_canvas_modulate.color = ambient
 	if _bg:
 		_bg.set_ambient(ambient)
+
+func _spawn_starter_plankton():
+	var plankton = PLANKTON_SCENE.instantiate() as Node2D
+	add_child(plankton)
+	plankton.global_position = Vector2(360.0, _player_start_y - 220.0)
 
 func _on_WallSpawnTimer_timeout():
 	spawn_wall()
@@ -114,7 +120,7 @@ func spawn_pufferfish():
 
 func _on_PlanktonSpawnTimer_timeout():
 	spawn_plankton()
-	PLANKTON_SPAWN_INTERVAL = randf_range(3, 4)
+	PLANKTON_SPAWN_INTERVAL = randf_range(1.8, 2.5)
 	var plankton_spawn_timer = get_node('plankton_spawn_timer')
 	plankton_spawn_timer.wait_time = PLANKTON_SPAWN_INTERVAL
 	if not plankton_spawn_timer.timeout.is_connected(_on_PlanktonSpawnTimer_timeout):
@@ -145,7 +151,7 @@ func spawn_plankton():
 
 # Buffer added around each entity so they don't spawn touching
 const SPAWN_BUFFER = 40.0
-const MAX_PLANKTON = 3
+const MAX_PLANKTON = 4
 
 func overlaps_existing(pos: Vector2, size: Vector2) -> bool:
 	var rect = Rect2(pos - size / 2.0, size).grow(SPAWN_BUFFER)

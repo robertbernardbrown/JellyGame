@@ -56,17 +56,14 @@ func setup(on_left: bool):
 func _ready():
 	anim.flip_h = _on_left
 	anim.play("Idle")
-	kill_col.disabled = true
 	eye_light.energy = 0.0
 	_player = get_tree().get_first_node_in_group("Player")
 	_phase    = randf() * TAU
 	_freq_y   = randf_range(0.4, 0.75)
 	_radius_y = randf_range(7.0, 13.0)
 
-	var eye_x  =  EYE_OFFSET_X  if _on_left else -EYE_OFFSET_X
-	var head_x =  HEAD_OFFSET_X if _on_left else -HEAD_OFFSET_X
+	var eye_x = EYE_OFFSET_X if _on_left else -EYE_OFFSET_X
 	eye_light.position = Vector2(eye_x, EYE_OFFSET_Y)
-	kill_col.position  = Vector2(head_x, 0.0)
 
 	var ctf = get_canvas_transform()
 	var vp  = get_viewport_rect().size
@@ -150,13 +147,11 @@ func _set_state(new_state: State):
 			pass
 		State.LUNGING:
 			anim.play("LungeOpen")
-			kill_col.disabled = false
 		State.SNAPPING:
 			anim.play("Snap")
 		State.SNAP_HOLD:
 			anim.stop()
-			anim.frame = 1  # force to last Snap frame (user's frame 6) regardless of timing
-			kill_col.disabled = true
+			anim.frame = 1
 			_tween_eye(0.0, EYE_DIM_TIME)
 		State.LUNGE_LINGER:
 			anim.play("Idle")

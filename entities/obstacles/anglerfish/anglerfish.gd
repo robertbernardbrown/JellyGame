@@ -1,10 +1,14 @@
 extends Area2D
 
 const LURE_OFFSET = Vector2(0, -40)
-const TRIGGER_DISTANCE = 90.0   # px from lure centre to player before reveal starts
-const ESCAPE_WINDOW = .5       # seconds the mouth holds open
+const TRIGGER_DISTANCE = 120.0  # px from lure centre to player before reveal starts
+const ESCAPE_WINDOW = 0.3       # seconds the mouth holds open
 const BODY_FADE_DURATION = 0.25 # how fast the body materialises on reveal
 const SNAP_RESET_PAUSE = 0.4    # how long the idle pose shows after the snap before fading
+const LUNGE_DISTANCE = 200.0    # px the body surges toward the player on trigger
+const LUNGE_DURATION = 0.3      # seconds the lunge takes
+const LURE_MAX_DRIFT = 120.0    # max px the lure can drift horizontally toward player
+const LURE_DRIFT_SPEED = 1.2    # lerp rate per second toward player's lane
 
 @onready var body_spr: AnimatedSprite2D = $BodySprite
 @onready var eyes_spr: AnimatedSprite2D = $EyesSprite
@@ -31,6 +35,7 @@ var _lure_freq_x: float
 var _lure_freq_y: float
 var _lure_radius_x: float
 var _lure_radius_y: float
+var _lure_drift: Vector2 = Vector2.ZERO
 
 func _ready():
 	lure.position = LURE_OFFSET
@@ -66,13 +71,17 @@ func _process(delta):
 			sin(_time * _freq_x + _phase) * _radius_x,
 			cos(_time * _freq_y + _phase * 0.7) * _radius_y
 		)
-		# Lure wiggles independently around the antenna tip
+		# Drift lure horizontally toward the player's lane
+		if _player:
+			var target_x: float = clamp(_player.global_position.x - global_position.x, -LURE_MAX_DRIFT, LURE_MAX_DRIFT)
+			_lure_drift = _lure_drift.lerp(Vector2(target_x, 0.0), LURE_DRIFT_SPEED * delta)
+		# Wiggle applied on top of the drift
 		var lure_offset = Vector2(
 			sin(_time * _lure_freq_x + _lure_phase) * _lure_radius_x,
 			cos(_time * _lure_freq_y + _lure_phase * 0.7) * _lure_radius_y
 		)
-		lure.position = LURE_OFFSET + lure_offset
-		_lure_light.position = LURE_OFFSET + lure_offset
+		lure.position = LURE_OFFSET + _lure_drift + lure_offset
+		_lure_light.position = LURE_OFFSET + _lure_drift + lure_offset
 
 	if _player and global_position.y > _player.global_position.y + get_viewport_rect().size.y:
 		queue_free()
@@ -103,6 +112,11 @@ func _set_state(new_state: State):
 			# Eyes fade in alongside their opening animation
 			_tween.tween_property(eyes_spr, "modulate:a", 1.0, 0.4)
 			eyes_spr.play("EyesReveal")
+			# Lunge toward player — overshoot by 50px so fast players don't slip past
+			if _player:
+				var to_player: Vector2 = _player.global_position - global_position
+				var lunge_dist: float = minf(to_player.length() + 50.0, LUNGE_DISTANCE)
+				_tween.tween_property(self, "global_position", global_position + to_player.normalized() * lunge_dist, LUNGE_DURATION)
 
 		State.MOUTH_OPENING:
 			_kill_tween()

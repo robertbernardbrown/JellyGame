@@ -4,26 +4,28 @@ extends CharacterBody2D
 @onready var camera: Camera2D = $Camera2D
 @onready var _light: PointLight2D = $Light/LightTexture
 
-const MIN_PROPEL_SPEED = 200.0   # Quick tap — small nudge
-const MAX_PROPEL_SPEED = 900.0  # Full charge — big burst
+const MIN_PROPEL_SPEED = 280.0
+const MAX_PROPEL_SPEED = 720.0
 const MAX_CHARGE_TIME = 1.0     # Seconds to reach full charge
-const GRAVITY = 300.0
-const WATER_DRAG_X = 3.0
-const WATER_DRAG_Y = 1.5
+const GRAVITY = 320.0
+const WATER_DRAG_X = 2.0
+const WATER_DRAG_Y = 1.6
 const ROTATION_SPEED = 8.0
-const MIN_RING_RADIUS = 30.0
-const MAX_RING_RADIUS = 120.0
+const MIN_RING_RADIUS = 20.0
+const MAX_RING_RADIUS = 85.0
 const RING_WIDTH = 3.0
 const VIEWPORT_WIDTH = 720.0
 const VIEWPORT_HEIGHT = 1280.0
 const SIDE_MARGIN = 60.0  # Buffer past screen edge before death
 const FALL_MARGIN = 80.0  # How far below screen bottom before death
-const ENERGY_SWIM_COST_MIN = 0.01  # Cost for a minimal tap
-const ENERGY_SWIM_COST_MAX = 0.06  # Cost for a full-charge burst
+const ENERGY_SWIM_COST_MIN = 0.02
+const ENERGY_SWIM_COST_MAX = 0.08
 const LIGHT_SCALE_MIN = 3.99
 const LIGHT_SCALE_MAX = 14.98
 const MIN_PULL_DISTANCE = 50.0   # pixels of drag before aim activates
-const PULL_FULL_DISTANCE = 150.0 # pixels of drag for pull_factor to reach 1.0
+const PULL_FULL_DISTANCE = 200.0 # pixels of drag for pull_factor to reach 1.0
+const LEVEL_THRESHOLDS: Array[int]   = [0, 5, 10, 20, 35]
+const LEVEL_MULTIPLIERS: Array[float] = [1.0, 0.8, 0.65, 0.5, 0.38]
 
 var tap_position: Vector2 = Vector2.ZERO
 var is_pressing: bool = false
@@ -41,6 +43,11 @@ var _dying: bool = false
 var _death_velocity: float = 0.0
 var _free_swim: bool = false
 var current_touch_pos: Vector2 = Vector2.ZERO
+var _plankton_count: int = 0
+var _energy_level: int = 1
+var _level_label: Label = null
+
+const _BUBBLE_PUFF = preload("res://entities/player/bubble_puff.gd")
 
 const DEBUG_JUMP_METERS = 100.0
 var _debug_noclip: bool = false
@@ -56,6 +63,7 @@ func _ready():
 	if not _free_swim:
 		_setup_energy_bar.call_deferred()
 	_setup_plankton_counter.call_deferred()
+	_setup_level_display.call_deferred()
 
 func _process(delta):
 	if _dying:
@@ -136,43 +144,67 @@ func _draw():
 	_draw_charge_shape(_get_aim_direction(), radius, _get_pull_factor(), color)
 
 func _draw_charge_shape(aim_dir: Vector2, radius: float, pull_factor: float, color: Color):
-	var n_points := 64
-	var launch_angle := atan2(aim_dir.y, aim_dir.x)
-	# Arc spans full circle at no pull, back-semicircle at full pull
-	var arc_span: float = lerp(TAU, PI, pull_factor)
-	var arc_start: float = (launch_angle + PI) - arc_span / 2.0
-	# Tip extends from the circle edge outward in the launch direction
-	var tip_dist: float = radius * (1.0 + 1.5 * pull_factor)
-	var tip := aim_dir * tip_dist
+	if pull_factor > 0.05:
+		_draw_bell_dome(aim_dir, radius, pull_factor, color)
+		_draw_tentacles(aim_dir, radius, pull_factor, color)
 
+func _draw_bell_dome(aim_dir: Vector2, radius: float, pull_factor: float, color: Color):
+	var perp := Vector2(-aim_dir.y, aim_dir.x)
+	var dome_width: float = lerp(radius * 0.75, radius * 1.15, pull_factor)
+	var dome_height: float = dome_width * 0.6
+	var pulse_scale := 1.0 + sin(_time * 2.5) * 0.04
+	dome_width *= pulse_scale
+	dome_height *= pulse_scale
 	var poly := PackedVector2Array()
-	for i in range(n_points + 1):
-		var t := float(i) / n_points
-		var angle := arc_start + t * arc_span
-		poly.append(Vector2(cos(angle), sin(angle)) * radius)
-	if pull_factor > 0.01:
-		poly.append(tip)
+	for i in range(33):
+		var t: float = float(i) / 32.0
+		var angle: float = lerp(-PI / 2.0, PI / 2.0, t)
+		poly.append(aim_dir * cos(angle) * dome_height + perp * sin(angle) * dome_width)
+	draw_polyline(poly, Color(color.r, color.g, color.b, color.a * 0.7), RING_WIDTH * 0.85, true)
 
-	draw_colored_polygon(poly, Color(color.r, color.g, color.b, color.a * 0.25))
+func _draw_tentacles(aim_dir: Vector2, radius: float, pull_factor: float, color: Color):
+	var trail_dir := -aim_dir
+	var perp := Vector2(-trail_dir.y, trail_dir.x)
+	var n_points := 22
+	var length: float = 130.0 * pull_factor
+	var wave_amp := 12.0
+	var wave_freq := 2.2
+	for i in range(3):
+		var phase: float = float(i) / 3.0 * TAU
+		var spread: float = lerp(-16.0, 16.0, float(i) / 2.0)
+		var points := PackedVector2Array()
+		var colors := PackedColorArray()
+		for j in range(n_points + 1):
+			var t: float = float(j) / float(n_points)
+			var lateral: float = spread * (1.0 - t * 0.7) + sin(t * wave_freq * TAU + _time * 3.5 + phase) * wave_amp * t
+			points.append(trail_dir * (radius * 0.6 + t * length) + perp * lateral)
+			colors.append(Color(color.r, color.g, color.b, color.a * (1.0 - t)))
+		draw_polyline_colors(points, colors, 2.5, true)
 
-	var outline := PackedVector2Array(poly)
-	outline.append(outline[0])
-	draw_polyline(outline, color, RING_WIDTH, true)
+#func _draw_bubble_stream(aim_dir: Vector2, radius: float, pull_factor: float, color: Color):
+#	var perp := Vector2(-aim_dir.y, aim_dir.x)
+#	var n_bubbles: int = int(lerp(3.0, 10.0, pull_factor))
+func _spawn_launch_bubbles(aim_dir: Vector2, charge: float) -> void:
+	var parent = get_parent()
+	if not parent:
+		return
+	var trail_dir := -aim_dir
+	var perp := Vector2(-aim_dir.y, aim_dir.x)
+	var count := int(lerp(3.0, 8.0, charge))
+	for i in range(count):
+		var bubble = _BUBBLE_PUFF.new()
+		parent.add_child(bubble)
+		bubble.global_position = global_position
+		var trail_speed: float = randf_range(50.0, 130.0) * lerp(0.4, 1.0, charge)
+		var vel := trail_dir * trail_speed + perp * randf_range(-55.0, 55.0)
+		var radius: float = randf_range(3.0, 7.0)
+		var lifetime: float = randf_range(0.4, 0.9)
+		var col := Color(0.2, 0.85, 1.0, randf_range(0.55, 0.85))
+		bubble.setup(vel, radius, col, lifetime)
 
-	# Inner glow — slightly smaller, softer
-	var ir := radius * 0.85
-	var inner_poly := PackedVector2Array()
-	for i in range(n_points + 1):
-		var t := float(i) / n_points
-		var angle := arc_start + t * arc_span
-		inner_poly.append(Vector2(cos(angle), sin(angle)) * ir)
-	if pull_factor > 0.01:
-		inner_poly.append(aim_dir * (ir * (1.0 + 1.5 * pull_factor)))
-	draw_colored_polygon(inner_poly, Color(color.r, color.g, color.b, color.a * 0.12))
 
 func _get_charge_percent() -> float:
-	var held = Time.get_ticks_msec() / 1000.0 - press_start_time
-	return clamp(held / MAX_CHARGE_TIME, 0.0, 1.0)
+	return _get_pull_factor()
 
 func _get_aim_direction() -> Vector2:
 	var drag := current_touch_pos - tap_position
@@ -219,8 +251,9 @@ func _unhandled_input(event):
 			var charge = _get_charge_percent()
 			var speed = lerp(MIN_PROPEL_SPEED, MAX_PROPEL_SPEED, charge)
 			velocity = _get_aim_direction() * speed
+			_spawn_launch_bubbles(_get_aim_direction(), charge)
 			if not _free_swim:
-				energy = maxf(0.0, energy - lerp(ENERGY_SWIM_COST_MIN, ENERGY_SWIM_COST_MAX, charge))
+				energy = maxf(0.0, energy - lerp(ENERGY_SWIM_COST_MIN, ENERGY_SWIM_COST_MAX, charge) * _get_cost_multiplier())
 				if energy <= 0.0:
 					_trigger_death()
 			anim.play('Float')
@@ -229,6 +262,72 @@ func _unhandled_input(event):
 func restore_energy(amount: float):
 	energy = min(1.0, energy + amount)
 	_flash_amount = 1.0
+
+func collect_plankton(amount: float):
+	restore_energy(amount)
+	_plankton_count += 1
+	_check_level_up()
+
+func _get_cost_multiplier() -> float:
+	return LEVEL_MULTIPLIERS[_energy_level - 1]
+
+func _check_level_up():
+	var new_level := 1
+	for i in range(LEVEL_THRESHOLDS.size()):
+		if _plankton_count >= LEVEL_THRESHOLDS[i]:
+			new_level = i + 1
+	if new_level <= _energy_level:
+		return
+	_energy_level = new_level
+	_flash_amount = 1.0
+	_update_level_display()
+	_show_level_up_popup()
+
+func _setup_level_display():
+	var hud = get_node_or_null("/root/World/HUD")
+	if not hud:
+		return
+	var bungee = load("res://assets/fonts/bungee/Bungee-Regular.ttf")
+	var label = Label.new()
+	label.name = "LevelDisplay"
+	label.text = "LVL 1"
+	label.add_theme_font_override("font", bungee)
+	label.add_theme_font_size_override("font_size", 32)
+	label.add_theme_color_override("font_color", Color(0.0, 0.85, 1.0, 0.9))
+	label.add_theme_color_override("font_shadow_color", Color(0.0, 0.3, 0.5, 0.5))
+	label.add_theme_constant_override("shadow_offset_x", 2)
+	label.add_theme_constant_override("shadow_offset_y", 2)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud.add_child(label)
+	label.position = Vector2(16, 55)
+	_level_label = label
+
+func _update_level_display():
+	if _level_label:
+		_level_label.text = "LVL " + str(_energy_level)
+
+func _show_level_up_popup():
+	var hud = get_node_or_null("/root/World/HUD")
+	if not hud:
+		return
+	var bungee = load("res://assets/fonts/bungee/Bungee-Regular.ttf")
+	var popup = Label.new()
+	popup.text = "Level Up!"
+	popup.add_theme_font_override("font", bungee)
+	popup.add_theme_font_size_override("font_size", 56)
+	popup.add_theme_color_override("font_color", Color(0.0, 0.95, 1.0, 1.0))
+	popup.add_theme_color_override("font_shadow_color", Color(0.0, 0.3, 0.5, 0.6))
+	popup.add_theme_constant_override("shadow_offset_x", 4)
+	popup.add_theme_constant_override("shadow_offset_y", 4)
+	popup.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	popup.custom_minimum_size = Vector2(VIEWPORT_WIDTH, 0)
+	popup.position = Vector2(0, VIEWPORT_HEIGHT / 2.0 - 60.0)
+	popup.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud.add_child(popup)
+	var tween = create_tween()
+	tween.tween_property(popup, "position:y", popup.position.y - 100.0, 1.4)
+	tween.parallel().tween_property(popup, "modulate:a", 0.0, 1.4)
+	tween.tween_callback(popup.queue_free)
 
 func _setup_energy_bar():
 	var hud = get_node_or_null("/root/World/HUD")
