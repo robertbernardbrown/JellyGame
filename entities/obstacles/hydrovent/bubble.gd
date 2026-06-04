@@ -7,7 +7,7 @@ const TEXTURES = [
 ]
 const RADII = [8.0, 16.0, 28.0]
 const BASE_LIFETIMES = [6.0, 8.0, 10.0]
-const BUBBLE_PUSH_FORCE = 180.0  # tune this to adjust push strength
+const BUBBLE_PUSH_FORCE = 65.0
 const SIZE_PUSH_MULTIPLIERS = [0.4, 0.7, 1.0]
 
 var _velocity: Vector2
@@ -35,6 +35,7 @@ func _ready():
 
 func _process(delta):
 	_time += delta
+	_velocity.x = lerpf(_velocity.x, 0.0, 0.5 * delta)
 	var wobble = sin(_time * 1.5 + _wobble_phase) * 5.0
 	position += (_velocity + Vector2(wobble, 0.0)) * delta
 	modulate.a = clamp(1.0 - (_time / _lifetime), 0.0, 1.0)

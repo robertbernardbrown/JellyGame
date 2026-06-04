@@ -31,14 +31,23 @@ func increment_score(amount: int = 1):
 		score_label.text = str(score)
 
 func save_if_high_score():
+	var is_free_swim: bool = get_tree().get_meta("free_swim", false)
 	var data = _load_save_data()
 	var changed = false
-	if score > data.best_score:
-		data.best_score = score
-		changed = true
-	if max_depth > data.best_depth:
-		data.best_depth = max_depth
-		changed = true
+	if is_free_swim:
+		if score > data.get("free_swim_best_score", 0):
+			data["free_swim_best_score"] = score
+			changed = true
+		if max_depth > data.get("free_swim_best_depth", 0.0):
+			data["free_swim_best_depth"] = max_depth
+			changed = true
+	else:
+		if score > data.get("best_score", 0):
+			data["best_score"] = score
+			changed = true
+		if max_depth > data.get("best_depth", 0.0):
+			data["best_depth"] = max_depth
+			changed = true
 	if changed:
 		var file = FileAccess.open("user://highscore.save", FileAccess.WRITE)
 		if file:
@@ -52,4 +61,4 @@ func _load_save_data() -> Dictionary:
 		file.close()
 		if data is Dictionary:
 			return data
-	return {"best_score": 0, "best_depth": 0.0}
+	return {"best_score": 0, "best_depth": 0.0, "free_swim_best_score": 0, "free_swim_best_depth": 0.0}

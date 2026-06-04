@@ -5,7 +5,7 @@ extends CharacterBody2D
 @onready var _light: PointLight2D = $Light/LightTexture
 
 const MIN_PROPEL_SPEED = 280.0
-const MAX_PROPEL_SPEED = 720.0
+const MAX_PROPEL_SPEED = 670.0
 const MAX_CHARGE_TIME = 1.0     # Seconds to reach full charge
 const GRAVITY = 320.0
 const WATER_DRAG_X = 2.0
@@ -27,6 +27,7 @@ const PULL_FULL_DISTANCE = 200.0 # pixels of drag for pull_factor to reach 1.0
 const LEVEL_THRESHOLDS: Array[int]   = [0, 5, 10, 20, 35]
 const LEVEL_MULTIPLIERS: Array[float] = [1.0, 0.8, 0.65, 0.5, 0.38]
 
+var _start_y: float = 0.0
 var tap_position: Vector2 = Vector2.ZERO
 var is_pressing: bool = false
 var press_start_time: float = 0.0
@@ -38,6 +39,8 @@ var _displayed_energy: float = 1.0
 var _energy_bar_mat: ShaderMaterial
 var _energy_bar: TextureRect
 var _flash_amount: float = 0.0
+var _light_bonus: float = 0.0
+var _light_bonus_target: float = 0.0
 var _time: float = 0.0
 var _dying: bool = false
 var _death_velocity: float = 0.0
@@ -56,14 +59,15 @@ var _debug_label: Label = null
 func _ready():
 	camera_start_x = global_position.x
 	highest_y = global_position.y
+	_start_y = global_position.y
 	var mat = ShaderMaterial.new()
 	mat.shader = load("res://entities/player/flash.gdshader")
 	anim.material = mat
 	_free_swim = get_tree().get_meta("free_swim", false)
 	if not _free_swim:
 		_setup_energy_bar.call_deferred()
+		_setup_level_display.call_deferred()
 	_setup_plankton_counter.call_deferred()
-	_setup_level_display.call_deferred()
 
 func _process(delta):
 	if _dying:
@@ -83,6 +87,8 @@ func _process(delta):
 	velocity.y += GRAVITY * delta
 
 	_time += delta
+	_light_bonus_target = maxf(0.0, _light_bonus_target - delta * 0.07)
+	_light_bonus = lerpf(_light_bonus, _light_bonus_target, delta * 2.5)
 	_update_energy_bar(delta)
 	_update_light_scale()
 
@@ -265,8 +271,11 @@ func restore_energy(amount: float):
 
 func collect_plankton(amount: float):
 	restore_energy(amount)
+	_light_bonus_target = minf(1.0, _light_bonus_target + 0.18)
 	_plankton_count += 1
-	_check_level_up()
+	if not _free_swim:
+		_check_level_up()
+		_update_level_display()
 
 func _get_cost_multiplier() -> float:
 	return LEVEL_MULTIPLIERS[_energy_level - 1]
@@ -303,8 +312,13 @@ func _setup_level_display():
 	_level_label = label
 
 func _update_level_display():
-	if _level_label:
-		_level_label.text = "LVL " + str(_energy_level)
+	if not _level_label:
+		return
+	if _energy_level >= LEVEL_THRESHOLDS.size():
+		_level_label.text = "LVL " + str(_energy_level) + "  MAX"
+	else:
+		var next: int = LEVEL_THRESHOLDS[_energy_level]
+		_level_label.text = "LVL " + str(_energy_level) + "  " + str(_plankton_count) + "/" + str(next)
 
 func _show_level_up_popup():
 	var hud = get_node_or_null("/root/World/HUD")
@@ -387,8 +401,11 @@ func _setup_plankton_counter():
 
 
 func _update_light_scale():
-	var s = lerp(LIGHT_SCALE_MIN, LIGHT_SCALE_MAX, _displayed_energy)
-	var f = 1.0 + sin(_time * 0.9) * 0.08
+	var depth_px: float = _start_y - highest_y
+	var depth_t: float = clampf(1.0 - depth_px / 1400.0, 0.0, 1.0)
+	var t: float = clampf(depth_t + _light_bonus, 0.0, 1.0)
+	var s: float = lerp(LIGHT_SCALE_MIN, LIGHT_SCALE_MAX, t)
+	var f: float = 1.0 + sin(_time * 0.9) * 0.08
 	_light.scale = Vector2(s * f, s * f)
 
 func _update_energy_bar(delta: float):

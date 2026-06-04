@@ -99,9 +99,10 @@ func _apply_theme():
 	$Title.add_theme_constant_override("shadow_offset_x", 5)
 	$Title.add_theme_constant_override("shadow_offset_y", 5)
 
-	$HighScore.add_theme_font_override("font", bungee_font)
-	$HighScore.add_theme_font_size_override("font_size", 40)
-	$HighScore.add_theme_color_override("font_color", Color(0.5, 0.75, 1.0, 0.8))
+	for score_label in [$HighScore, $FreeSwimScore]:
+		score_label.add_theme_font_override("font", bungee_font)
+		score_label.add_theme_font_size_override("font_size", 40)
+		score_label.add_theme_color_override("font_color", Color(0.5, 0.75, 1.0, 0.8))
 
 	for button in [$Start, $Quit]:
 		button.add_theme_font_override("font", bungee_font)
@@ -129,19 +130,15 @@ func _apply_theme():
 		button.add_theme_stylebox_override("pressed", pressed)
 
 func _load_high_score():
+	var data := {}
 	var file = FileAccess.open("user://highscore.save", FileAccess.READ)
 	if file:
-		var data = file.get_var()
+		var raw = file.get_var()
 		file.close()
-		if data is Dictionary:
-			$HighScore.text = "Best: " + str(data.get("best_score", 0)) + "  |  " + str(int(data.get("best_depth", 0))) + "m"
-		elif data != null:
-			# Legacy format (just a score int) — show it, will upgrade on next save
-			$HighScore.text = "Best: " + str(data)
-		else:
-			$HighScore.text = "Best: 0  |  0m"
-	else:
-		$HighScore.text = "Best: 0  |  0m"
+		if raw is Dictionary:
+			data = raw
+	$HighScore.text = "Best: " + str(data.get("best_score", 0)) + "  |  " + str(int(data.get("best_depth", 0.0))) + "m"
+	$FreeSwimScore.text = "Best: " + str(data.get("free_swim_best_score", 0)) + "  |  " + str(int(data.get("free_swim_best_depth", 0.0))) + "m"
 
 func _on_start_pressed():
 	get_tree().set_meta("free_swim", false)

@@ -4,8 +4,8 @@ const TRICKLE_INTERVAL_MIN = 0.3
 const TRICKLE_INTERVAL_MAX = 0.9
 const SURGE_TRICKLE_INTERVAL_MIN = 0.15
 const SURGE_TRICKLE_INTERVAL_MAX = 0.4
-const SURGE_INTERVAL_MIN = 8.0
-const SURGE_INTERVAL_MAX = 18.0
+const SURGE_INTERVAL_MIN = 4.0
+const SURGE_INTERVAL_MAX = 10.0
 const SURGE_DURATION_MIN = 2.0
 const SURGE_DURATION_MAX = 4.0
 const LIGHT_SURGE_ENERGY = 1.2
@@ -82,7 +82,7 @@ func _on_trickle():
 				_spawn_bubble(_trickle_velocity(), randi_range(0, 1))
 			_trickle_timer.start(randf_range(TRICKLE_INTERVAL_MIN, TRICKLE_INTERVAL_MAX))
 		State.SURGING:
-			var count = randi_range(2, 3)
+			var count = randi_range(1, 2)
 			for i in count:
 				_spawn_bubble(_surge_velocity(), randi_range(1, 2))
 			_trickle_timer.start(randf_range(SURGE_TRICKLE_INTERVAL_MIN, SURGE_TRICKLE_INTERVAL_MAX))
@@ -96,13 +96,13 @@ func _on_surge_end():
 
 func _trickle_velocity() -> Vector2:
 	var center_sign = 1.0 if _on_left else -1.0
-	var angle = randf_range(0.0, PI * 0.18) * center_sign
-	return Vector2(sin(angle), -cos(angle)) * randf_range(60.0, 120.0)
+	var angle = randf_range(PI * 0.26, PI * 0.34) * center_sign
+	return Vector2(sin(angle), -cos(angle)) * randf_range(70.0, 140.0)
 
 func _surge_velocity() -> Vector2:
 	var center_sign = 1.0 if _on_left else -1.0
-	var angle = randf_range(-PI * 0.04, PI * 0.22) * center_sign
-	return Vector2(sin(angle), -cos(angle)) * randf_range(110.0, 180.0)
+	var angle = randf_range(PI * 0.28, PI * 0.38) * center_sign
+	return Vector2(sin(angle), -cos(angle)) * randf_range(130.0, 210.0)
 
 func _spawn_bubble(vel: Vector2, size: int):
 	var bubble = BUBBLE_SCENE.instantiate()

@@ -12,8 +12,8 @@ const HYDROVENT_SPAWN_INTERVAL = 20.0
 const AMBIENT_FLOOR  = Color(0.02, 0.04, 0.18, 1.0)
 const AMBIENT_START  = AMBIENT_FLOOR
 const AMBIENT_DARK   = Color(0.05, 0.09, 0.25, 1.0)
-const DARK_START_DEPTH = 30.0    # metres before darkening kicks in
-const DARK_FULL_DEPTH  = 50.0    # metres where max darkness is reached
+const DARK_START_DEPTH = 12.0    # metres before darkening kicks in
+const DARK_FULL_DEPTH  = 28.0    # metres where max darkness is reached
 
 var _canvas_modulate: CanvasModulate
 var _bg: Node
