@@ -1,6 +1,7 @@
-[gd_scene load_steps=37 format=3 uid="uid://xkt8ckcktuo0"]
+[gd_scene load_steps=38 format=3 uid="uid://xkt8ckcktuo0"]
 
 [ext_resource type="Script" path="res://entities/player/player.gd" id="1_h0gt1"]
+[ext_resource type="AudioStream" path="res://audio/jelly_bubbles.wav" id="swim_snd"]
 [ext_resource type="Texture2D" uid="uid://dhu3a3u844xe8" path="res://assets/sprites/player/jelly_animations-Sheet.png" id="2_6pggy"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_mi7ll"]
@@ -286,3 +287,8 @@ range_layer_min = -100
 texture = SubResource("GradientTexture2D_light")
 
 [node name="Camera2D" type="Camera2D" parent="."]
+
+[node name="SwimSound" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("swim_snd")
+volume_db = 0.0
+bus = &"Master"

@@ -7,6 +7,7 @@ const PUFFERFISH_SPAWN_INTERVAL = 12.0
 const ANGLERFISH_SPAWN_INTERVAL = 28.0
 const EEL_SPAWN_INTERVAL = 18.0
 const HYDROVENT_SPAWN_INTERVAL = 20.0
+const BRINE_POOL_SPAWN_INTERVAL = 18.0
 
 # Adjust this to control the minimum darkness colour (deep blue = darker/moodier, lighter = more visible)
 const AMBIENT_FLOOR  = Color(0.02, 0.04, 0.18, 1.0)
@@ -32,6 +33,7 @@ const PUFFERFISH_SCENE = preload("res://entities/obstacles/pufferfish/pufferfish
 const ANGLERFISH_SCENE = preload("res://entities/obstacles/anglerfish/anglerfish.tscn")
 const EEL_SCENE = preload("res://entities/obstacles/eel/eel.tscn")
 const HYDROVENT_SCENE = preload("res://entities/obstacles/hydrovent/hydrovent.tscn")
+const BRINE_POOL_SCENE = preload("res://entities/obstacles/brine_pool/brine_pool.tscn")
 const SCORE_TRACKER_SCENE = preload("res://ui/score_tracker/score_tracker.tscn")
 
 # Wall tiles are 16px at 4x scale = 64px each.
@@ -57,6 +59,7 @@ func _ready():
 	start_timer(ANGLERFISH_SPAWN_INTERVAL, _on_AnglerSpawnTimer_timeout, false)
 	start_timer(EEL_SPAWN_INTERVAL, _on_EelSpawnTimer_timeout, false)
 	start_timer(HYDROVENT_SPAWN_INTERVAL, _on_HydroventSpawnTimer_timeout, false)
+	start_timer(BRINE_POOL_SPAWN_INTERVAL, _on_BrinePoolSpawnTimer_timeout, false)
 	var score_tracker_instance = SCORE_TRACKER_SCENE.instantiate() as Node
 	add_child(score_tracker_instance)
 	_canvas_modulate = $CanvasModulate
@@ -235,6 +238,13 @@ func spawn_wall():
 	wall.setup(total_columns, on_left)
 	add_child(wall)
 	wall.global_position = spawn_pos
+
+func _on_BrinePoolSpawnTimer_timeout():
+	var bounds = get_screen_bounds()
+	var spawn_x: float = randf_range(bounds.left + 160.0, bounds.right - 160.0)
+	var pool = BRINE_POOL_SCENE.instantiate()
+	add_child(pool)
+	pool.global_position = Vector2(spawn_x, bounds.top - 120.0)
 
 func _on_EelSpawnTimer_timeout():
 	spawn_eel()

@@ -137,8 +137,50 @@ func _load_high_score():
 		file.close()
 		if raw is Dictionary:
 			data = raw
-	$HighScore.text = "Best: " + str(data.get("best_score", 0)) + "  |  " + str(int(data.get("best_depth", 0.0))) + "m"
-	$FreeSwimScore.text = "Best: " + str(data.get("free_swim_best_score", 0)) + "  |  " + str(int(data.get("free_swim_best_depth", 0.0))) + "m"
+	_build_score_display($HighScore,
+		data.get("best_score", 0),
+		data.get("best_distance", 0),
+		data.get("best_plankton", 1))
+	_build_score_display($FreeSwimScore,
+		data.get("free_swim_best_score", 0),
+		data.get("free_swim_best_distance", 0),
+		data.get("free_swim_best_plankton", 1))
+
+func _build_score_display(placeholder: Label, score: int, distance: int, plankton: int):
+	if score == 0:
+		placeholder.text = "BEST: —"
+		return
+	placeholder.hide()
+	var plankton_atlas = AtlasTexture.new()
+	plankton_atlas.atlas = load("res://assets/sprites/plankton/plankton.png")
+	plankton_atlas.region = Rect2(0, 16, 16, 16)
+	var rtl = RichTextLabel.new()
+	rtl.bbcode_enabled = true
+	rtl.fit_content = true
+	rtl.scroll_active = false
+	rtl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rtl.size = Vector2(VIEWPORT_WIDTH, 90)
+	rtl.position = Vector2(0, placeholder.position.y)
+	rtl.add_theme_font_override("normal_font", bungee_font)
+
+	rtl.push_paragraph(HORIZONTAL_ALIGNMENT_CENTER)
+	rtl.push_font_size(44)
+	rtl.push_color(Color(1.0, 0.85, 0.2, 0.95))
+	rtl.add_text("%d pts" % [score])
+	rtl.pop()
+	rtl.pop()
+	rtl.pop()
+
+	rtl.push_paragraph(HORIZONTAL_ALIGNMENT_CENTER)
+	rtl.push_font_size(26)
+	rtl.push_color(Color(0.5, 0.75, 1.0, 0.8))
+	rtl.add_text("%dm  ×  %d  " % [distance, plankton])
+	rtl.add_image(plankton_atlas, 24, 24)
+	rtl.pop()
+	rtl.pop()
+	rtl.pop()
+
+	placeholder.get_parent().add_child(rtl)
 
 func _on_start_pressed():
 	get_tree().set_meta("free_swim", false)

@@ -3,6 +3,7 @@ extends CharacterBody2D
 @onready var anim: AnimatedSprite2D = $AnimatedSprite2D
 @onready var camera: Camera2D = $Camera2D
 @onready var _light: PointLight2D = $Light/LightTexture
+@onready var _swim_sound: AudioStreamPlayer = $SwimSound
 
 const MIN_PROPEL_SPEED = 280.0
 const MAX_PROPEL_SPEED = 670.0
@@ -23,9 +24,7 @@ const ENERGY_SWIM_COST_MAX = 0.08
 const LIGHT_SCALE_MIN = 3.99
 const LIGHT_SCALE_MAX = 14.98
 const MIN_PULL_DISTANCE = 50.0   # pixels of drag before aim activates
-const PULL_FULL_DISTANCE = 200.0 # pixels of drag for pull_factor to reach 1.0
-const LEVEL_THRESHOLDS: Array[int]   = [0, 5, 10, 20, 35]
-const LEVEL_MULTIPLIERS: Array[float] = [1.0, 0.8, 0.65, 0.5, 0.38]
+const PULL_FULL_DISTANCE = 320.0 # pixels of drag for pull_factor to reach 1.0
 
 var _start_y: float = 0.0
 var tap_position: Vector2 = Vector2.ZERO
@@ -47,8 +46,8 @@ var _death_velocity: float = 0.0
 var _free_swim: bool = false
 var current_touch_pos: Vector2 = Vector2.ZERO
 var _plankton_count: int = 0
-var _energy_level: int = 1
-var _level_label: Label = null
+var _brine_pool_count: int = 0
+var _blink_time: float = 0.0
 
 const _BUBBLE_PUFF = preload("res://entities/player/bubble_puff.gd")
 
@@ -66,7 +65,6 @@ func _ready():
 	_free_swim = get_tree().get_meta("free_swim", false)
 	if not _free_swim:
 		_setup_energy_bar.call_deferred()
-		_setup_level_display.call_deferred()
 	_setup_plankton_counter.call_deferred()
 
 func _process(delta):
@@ -82,6 +80,8 @@ func _process(delta):
 	velocity.x = move_toward(velocity.x, 0.0, WATER_DRAG_X * abs(velocity.x) * delta + 20.0 * delta)
 	if velocity.y < 0:
 		velocity.y = move_toward(velocity.y, 0.0, WATER_DRAG_Y * abs(velocity.y) * delta + 10.0 * delta)
+	if _brine_pool_count > 0:
+		velocity = velocity.move_toward(Vector2.ZERO, 320.0 * delta)
 
 	# Gravity layered on top of drag
 	velocity.y += GRAVITY * delta
@@ -226,7 +226,10 @@ func _get_aim_direction() -> Vector2:
 
 func _get_pull_factor() -> float:
 	var drag_len := (current_touch_pos - tap_position).length()
-	return clamp((drag_len - MIN_PULL_DISTANCE) / (PULL_FULL_DISTANCE - MIN_PULL_DISTANCE), 0.0, 1.0)
+	var factor: float = clamp((drag_len - MIN_PULL_DISTANCE) / (PULL_FULL_DISTANCE - MIN_PULL_DISTANCE), 0.0, 1.0)
+	if _brine_pool_count > 0:
+		factor *= 0.45
+	return factor
 
 func _unhandled_input(event):
 	if event is InputEventKey and event.pressed and not event.echo:
@@ -257,9 +260,11 @@ func _unhandled_input(event):
 			var charge = _get_charge_percent()
 			var speed = lerp(MIN_PROPEL_SPEED, MAX_PROPEL_SPEED, charge)
 			velocity = _get_aim_direction() * speed
+			_swim_sound.pitch_scale = randf_range(0.85, 1.15)
+			_swim_sound.play()
 			_spawn_launch_bubbles(_get_aim_direction(), charge)
 			if not _free_swim:
-				energy = maxf(0.0, energy - lerp(ENERGY_SWIM_COST_MIN, ENERGY_SWIM_COST_MAX, charge) * _get_cost_multiplier())
+				energy = maxf(0.0, energy - lerp(ENERGY_SWIM_COST_MIN, ENERGY_SWIM_COST_MAX, charge))
 				if energy <= 0.0:
 					_trigger_death()
 			anim.play('Float')
@@ -273,75 +278,6 @@ func collect_plankton(amount: float):
 	restore_energy(amount)
 	_light_bonus_target = minf(1.0, _light_bonus_target + 0.18)
 	_plankton_count += 1
-	if not _free_swim:
-		_check_level_up()
-		_update_level_display()
-
-func _get_cost_multiplier() -> float:
-	return LEVEL_MULTIPLIERS[_energy_level - 1]
-
-func _check_level_up():
-	var new_level := 1
-	for i in range(LEVEL_THRESHOLDS.size()):
-		if _plankton_count >= LEVEL_THRESHOLDS[i]:
-			new_level = i + 1
-	if new_level <= _energy_level:
-		return
-	_energy_level = new_level
-	_flash_amount = 1.0
-	_update_level_display()
-	_show_level_up_popup()
-
-func _setup_level_display():
-	var hud = get_node_or_null("/root/World/HUD")
-	if not hud:
-		return
-	var bungee = load("res://assets/fonts/bungee/Bungee-Regular.ttf")
-	var label = Label.new()
-	label.name = "LevelDisplay"
-	label.text = "LVL 1"
-	label.add_theme_font_override("font", bungee)
-	label.add_theme_font_size_override("font_size", 32)
-	label.add_theme_color_override("font_color", Color(0.0, 0.85, 1.0, 0.9))
-	label.add_theme_color_override("font_shadow_color", Color(0.0, 0.3, 0.5, 0.5))
-	label.add_theme_constant_override("shadow_offset_x", 2)
-	label.add_theme_constant_override("shadow_offset_y", 2)
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hud.add_child(label)
-	label.position = Vector2(16, 55)
-	_level_label = label
-
-func _update_level_display():
-	if not _level_label:
-		return
-	if _energy_level >= LEVEL_THRESHOLDS.size():
-		_level_label.text = "LVL " + str(_energy_level) + "  MAX"
-	else:
-		var next: int = LEVEL_THRESHOLDS[_energy_level]
-		_level_label.text = "LVL " + str(_energy_level) + "  " + str(_plankton_count) + "/" + str(next)
-
-func _show_level_up_popup():
-	var hud = get_node_or_null("/root/World/HUD")
-	if not hud:
-		return
-	var bungee = load("res://assets/fonts/bungee/Bungee-Regular.ttf")
-	var popup = Label.new()
-	popup.text = "Level Up!"
-	popup.add_theme_font_override("font", bungee)
-	popup.add_theme_font_size_override("font_size", 56)
-	popup.add_theme_color_override("font_color", Color(0.0, 0.95, 1.0, 1.0))
-	popup.add_theme_color_override("font_shadow_color", Color(0.0, 0.3, 0.5, 0.6))
-	popup.add_theme_constant_override("shadow_offset_x", 4)
-	popup.add_theme_constant_override("shadow_offset_y", 4)
-	popup.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	popup.custom_minimum_size = Vector2(VIEWPORT_WIDTH, 0)
-	popup.position = Vector2(0, VIEWPORT_HEIGHT / 2.0 - 60.0)
-	popup.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hud.add_child(popup)
-	var tween = create_tween()
-	tween.tween_property(popup, "position:y", popup.position.y - 100.0, 1.4)
-	tween.parallel().tween_property(popup, "modulate:a", 0.0, 1.4)
-	tween.tween_callback(popup.queue_free)
 
 func _setup_energy_bar():
 	var hud = get_node_or_null("/root/World/HUD")
@@ -415,6 +351,13 @@ func _update_energy_bar(delta: float):
 	if not _energy_bar_mat:
 		return
 	_energy_bar_mat.set_shader_parameter("fill_amount", _displayed_energy)
+	if energy < 0.35:
+		_blink_time += delta
+		var t = (sin(_blink_time * TAU * 1.5) + 1.0) * 0.5
+		_energy_bar_mat.set_shader_parameter("tint_color", Color(1.0 - t, 1.0, 1.0))
+	else:
+		_blink_time = 0.0
+		_energy_bar_mat.set_shader_parameter("tint_color", Color.WHITE)
 
 func _trigger_death():
 	if _dying:
@@ -423,8 +366,11 @@ func _trigger_death():
 	is_pressing = false
 	velocity = Vector2.ZERO
 	_displayed_energy = 0.0
+	_blink_time = 0.0
 	if _energy_bar_mat:
 		_energy_bar_mat.set_shader_parameter("fill_amount", 0.0)
+	if _energy_bar_mat:
+		_energy_bar_mat.set_shader_parameter("tint_color", Color.WHITE)
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	get_tree().paused = true
 	anim.scale = Vector2(4, -4)
@@ -435,19 +381,66 @@ func _show_game_over():
 	var hud = get_node_or_null("/root/World/HUD")
 	if not hud:
 		return
-	var label = Label.new()
-	label.text = "GAME OVER"
 	var bungee = load("res://assets/fonts/bungee/Bungee-Regular.ttf")
-	label.add_theme_font_override("font", bungee)
-	label.add_theme_font_size_override("font_size", 90)
-	label.add_theme_color_override("font_color", Color(0.0, 0.85, 1.0))
-	label.add_theme_color_override("font_shadow_color", Color(0.0, 0.3, 0.5, 0.6))
-	label.add_theme_constant_override("shadow_offset_x", 5)
-	label.add_theme_constant_override("shadow_offset_y", 5)
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.custom_minimum_size = Vector2(VIEWPORT_WIDTH, 0)
-	label.position = Vector2(0, VIEWPORT_HEIGHT / 2.0 - 80.0)
-	hud.add_child(label)
+
+	var title = Label.new()
+	title.text = "GAME OVER"
+	title.add_theme_font_override("font", bungee)
+	title.add_theme_font_size_override("font_size", 90)
+	title.add_theme_color_override("font_color", Color(0.0, 0.85, 1.0))
+	title.add_theme_color_override("font_shadow_color", Color(0.0, 0.3, 0.5, 0.6))
+	title.add_theme_constant_override("shadow_offset_x", 5)
+	title.add_theme_constant_override("shadow_offset_y", 5)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.custom_minimum_size = Vector2(VIEWPORT_WIDTH, 0)
+	title.position = Vector2(0, VIEWPORT_HEIGHT / 2.0 - 120.0)
+	hud.add_child(title)
+
+	var dist_m: int = int((_start_y - highest_y) / 50.0)
+	var effective_plankton: int = max(1, _plankton_count)
+	var final_score: int = dist_m * effective_plankton
+
+	var plankton_atlas = AtlasTexture.new()
+	plankton_atlas.atlas = load("res://assets/sprites/plankton/plankton.png")
+	plankton_atlas.region = Rect2(0, 16, 16, 16)
+
+	var run_rtl = RichTextLabel.new()
+	run_rtl.bbcode_enabled = true
+	run_rtl.fit_content = true
+	run_rtl.scroll_active = false
+	run_rtl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	run_rtl.custom_minimum_size = Vector2(VIEWPORT_WIDTH, 50)
+	run_rtl.position = Vector2(0, VIEWPORT_HEIGHT / 2.0 + 30.0)
+	run_rtl.add_theme_font_override("normal_font", bungee)
+	run_rtl.add_theme_font_size_override("normal_font_size", 36)
+	run_rtl.add_theme_color_override("default_color", Color(1.0, 0.85, 0.2, 0.95))
+	run_rtl.push_paragraph(HORIZONTAL_ALIGNMENT_CENTER)
+	run_rtl.add_text("%dm  ×  %d  " % [dist_m, effective_plankton])
+	run_rtl.add_image(plankton_atlas, 36, 36)
+	run_rtl.add_text("  =  %d" % [final_score])
+	run_rtl.pop()
+	hud.add_child(run_rtl)
+
+	var tracker = get_node_or_null("/root/World/ScoreTracker")
+	if tracker:
+		var best = tracker.get_best_score_data()
+		if best.score > 0:
+			var best_rtl = RichTextLabel.new()
+			best_rtl.bbcode_enabled = true
+			best_rtl.fit_content = true
+			best_rtl.scroll_active = false
+			best_rtl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			best_rtl.custom_minimum_size = Vector2(VIEWPORT_WIDTH, 40)
+			best_rtl.position = Vector2(0, VIEWPORT_HEIGHT / 2.0 + 100.0)
+			best_rtl.add_theme_font_override("normal_font", bungee)
+			best_rtl.add_theme_font_size_override("normal_font_size", 28)
+			best_rtl.add_theme_color_override("default_color", Color(0.0, 0.85, 1.0, 0.8))
+			best_rtl.push_paragraph(HORIZONTAL_ALIGNMENT_CENTER)
+			best_rtl.add_text("BEST:  %dm  ×  %d  " % [best.distance, best.plankton])
+			best_rtl.add_image(plankton_atlas, 28, 28)
+			best_rtl.add_text("  =  %d" % [best.score])
+			best_rtl.pop()
+			hud.add_child(best_rtl)
 
 func _process_death(delta: float):
 	_death_velocity += GRAVITY * delta
@@ -457,9 +450,16 @@ func _process_death(delta: float):
 		get_tree().paused = false
 		restart_game()
 
+func enter_brine_pool():
+	_brine_pool_count += 1
+
+func exit_brine_pool():
+	_brine_pool_count = maxi(0, _brine_pool_count - 1)
+
 func restart_game():
 	var tracker = get_node_or_null("/root/World/ScoreTracker")
 	if tracker:
+		tracker.finalize_score(_plankton_count)
 		tracker.save_if_high_score()
 	get_tree().change_scene_to_file("res://main.tscn")
 

@@ -56,6 +56,7 @@ func setup(on_left: bool):
 func _ready():
 	anim.flip_h = _on_left
 	anim.play("Idle")
+	kill_col.disabled = false
 	eye_light.energy = 0.0
 	_player = get_tree().get_first_node_in_group("Player")
 	_phase    = randf() * TAU
