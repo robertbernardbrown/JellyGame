@@ -110,7 +110,6 @@ func _apply_difficulty_tier(tier: int):
 	_hydrovent_timer.wait_time  = HYDROVENT_SPAWN_INTERVAL * m
 	_brine_pool_timer.wait_time = BRINE_POOL_SPAWN_INTERVAL * m
 
-	var bump: int = (1 if tier >= 2 else 0) + (1 if tier >= 4 else 0)
 	MAX_WALLS       = 4 + (1 if tier >= 2 else 0) + (1 if tier >= 5 else 0)
 	MAX_URCHINS     = 2 + (1 if tier >= 2 else 0) + (1 if tier >= 4 else 0)
 	MAX_PUFFERFISH  = 2 + (1 if tier >= 3 else 0)

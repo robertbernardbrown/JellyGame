@@ -24,7 +24,6 @@ func _ready():
 	_ambient_player.volume_db = -3.0
 	_ambient_player.finished.connect(func(): _ambient_player.play())
 	add_child(_ambient_player)
-	print("[OceanAmbient] stream loaded: ", _ambient_player.stream != null, " | bus: ", _ambient_player.bus)
 
 func set_title_volume():
 	_fade_to(TITLE_VOLUME_DB)
@@ -35,7 +34,6 @@ func set_gameplay_volume():
 	_fade_to(GAMEPLAY_VOLUME_DB)
 	if not _ambient_player.playing:
 		_ambient_player.play()
-		print("[OceanAmbient] play() called | playing: ", _ambient_player.playing)
 
 func _fade_to(target_db: float):
 	var tween = create_tween()

@@ -201,6 +201,7 @@ func _setup_lunge_sfx() -> void:
 		AudioServer.add_bus_effect(idx, reverb)
 	_lunge_sfx = AudioStreamPlayer.new()
 	_lunge_sfx.stream = load("res://audio/angler_lunge.mp3")
+	_lunge_sfx.volume_db = -7.0
 	_lunge_sfx.bus = bus_name
 	add_child(_lunge_sfx)
 

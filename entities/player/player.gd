@@ -58,10 +58,6 @@ var _swim_sfx_id: int = 0
 
 const _BUBBLE_PUFF = preload("res://entities/player/bubble_puff.gd")
 
-const DEBUG_JUMP_METERS = 100.0
-var _debug_noclip: bool = false
-var _debug_label: Label = null
-
 func set_in_tutorial(value: bool):
 	_in_tutorial = value
 	if _in_tutorial:
@@ -124,7 +120,7 @@ func _setup_warning_sfx() -> void:
 	_warning_sfx = AudioStreamPlayer.new()
 	_warning_sfx.stream = load("res://audio/new_sonar.wav")
 	_warning_sfx.pitch_scale = 0.45
-	_warning_sfx.volume_db = -4.0
+	_warning_sfx.volume_db = -11.0
 	_warning_sfx.bus = bus_name
 	add_child(_warning_sfx)
 
@@ -199,10 +195,6 @@ func _process(delta):
 		_update_light_scale()
 		return
 
-	if _debug_noclip:
-		_process_noclip(delta)
-		return
-
 	# Water drag — X always, Y only when moving upward (so gravity pull isn't canceled)
 	velocity.x = move_toward(velocity.x, 0.0, WATER_DRAG_X * abs(velocity.x) * delta + 20.0 * delta)
 	if velocity.y < 0:
@@ -231,7 +223,7 @@ func _process(delta):
 
 	# Death if player drifts off-screen horizontally
 	if global_position.x < -SIDE_MARGIN or global_position.x > VIEWPORT_WIDTH + SIDE_MARGIN:
-		restart_game()
+		_trigger_death()
 		return
 
 	move_and_slide()
@@ -243,7 +235,7 @@ func _process(delta):
 	# Death if player falls below the locked camera view
 	var screen_bottom = highest_y + VIEWPORT_HEIGHT / 2.0
 	if global_position.y > screen_bottom + FALL_MARGIN:
-		restart_game()
+		_trigger_death()
 		return
 
 	var tilt_target = clamp(velocity.x / MAX_PROPEL_SPEED, -1.0, 1.0) * deg_to_rad(35.0)
@@ -320,9 +312,6 @@ func _draw_tentacles(aim_dir: Vector2, radius: float, pull_factor: float, color:
 			colors.append(Color(color.r, color.g, color.b, color.a * (1.0 - t)))
 		draw_polyline_colors(points, colors, 2.5, true)
 
-#func _draw_bubble_stream(aim_dir: Vector2, radius: float, pull_factor: float, color: Color):
-#	var perp := Vector2(-aim_dir.y, aim_dir.x)
-#	var n_bubbles: int = int(lerp(3.0, 10.0, pull_factor))
 func _spawn_launch_bubbles(aim_dir: Vector2, charge: float) -> void:
 	var parent = get_parent()
 	if not parent:
@@ -365,17 +354,6 @@ func _get_pull_factor() -> float:
 	return factor
 
 func _unhandled_input(event):
-	if event is InputEventKey and event.pressed and not event.echo:
-		match event.keycode:
-			KEY_F1:
-				_toggle_noclip()
-			KEY_F2:
-				if _debug_noclip:
-					_debug_teleport(100.0)
-			KEY_F3:
-				if _debug_noclip:
-					_debug_teleport(-100.0)
-
 	if event is InputEventMouseMotion and is_pressing:
 		current_touch_pos = get_global_mouse_position()
 		queue_redraw()
@@ -556,13 +534,33 @@ func _show_game_over():
 	plankton_atlas.atlas = load("res://assets/sprites/plankton/plankton.png")
 	plankton_atlas.region = Rect2(0, 16, 16, 16)
 
+	var tracker = get_node_or_null("/root/World/ScoreTracker")
+	var prev_best := {"score": 0, "distance": 0, "plankton": 1}
+	if tracker:
+		prev_best = tracker.get_best_score_data()
+	var is_new_best: bool = final_score > prev_best.score
+
+	if is_new_best:
+		var nb_label = Label.new()
+		nb_label.text = "NEW BEST!"
+		nb_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		nb_label.custom_minimum_size = Vector2(VIEWPORT_WIDTH, 0)
+		nb_label.position = Vector2(0, VIEWPORT_HEIGHT / 2.0 + 0.0)
+		nb_label.add_theme_font_override("font", bungee)
+		nb_label.add_theme_font_size_override("font_size", 52)
+		nb_label.add_theme_color_override("font_color", Color(1.0, 0.95, 0.1, 1.0))
+		nb_label.add_theme_color_override("font_shadow_color", Color(0.4, 0.3, 0.0, 0.5))
+		nb_label.add_theme_constant_override("shadow_offset_x", 3)
+		nb_label.add_theme_constant_override("shadow_offset_y", 3)
+		hud.add_child(nb_label)
+
 	var run_rtl = RichTextLabel.new()
 	run_rtl.bbcode_enabled = true
 	run_rtl.fit_content = true
 	run_rtl.scroll_active = false
 	run_rtl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	run_rtl.custom_minimum_size = Vector2(VIEWPORT_WIDTH, 50)
-	run_rtl.position = Vector2(0, VIEWPORT_HEIGHT / 2.0 + 30.0)
+	run_rtl.position = Vector2(0, VIEWPORT_HEIGHT / 2.0 + (70.0 if is_new_best else 30.0))
 	run_rtl.add_theme_font_override("normal_font", bungee)
 	run_rtl.add_theme_font_size_override("normal_font_size", 36)
 	run_rtl.add_theme_color_override("default_color", Color(1.0, 0.85, 0.2, 0.95))
@@ -573,26 +571,23 @@ func _show_game_over():
 	run_rtl.pop()
 	hud.add_child(run_rtl)
 
-	var tracker = get_node_or_null("/root/World/ScoreTracker")
-	if tracker:
-		var best = tracker.get_best_score_data()
-		if best.score > 0:
-			var best_rtl = RichTextLabel.new()
-			best_rtl.bbcode_enabled = true
-			best_rtl.fit_content = true
-			best_rtl.scroll_active = false
-			best_rtl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			best_rtl.custom_minimum_size = Vector2(VIEWPORT_WIDTH, 40)
-			best_rtl.position = Vector2(0, VIEWPORT_HEIGHT / 2.0 + 100.0)
-			best_rtl.add_theme_font_override("normal_font", bungee)
-			best_rtl.add_theme_font_size_override("normal_font_size", 28)
-			best_rtl.add_theme_color_override("default_color", Color(0.0, 0.85, 1.0, 0.8))
-			best_rtl.push_paragraph(HORIZONTAL_ALIGNMENT_CENTER)
-			best_rtl.add_text("BEST:  %dm  ×  %d  " % [best.distance, best.plankton])
-			best_rtl.add_image(plankton_atlas, 28, 28)
-			best_rtl.add_text("  =  %d" % [best.score])
-			best_rtl.pop()
-			hud.add_child(best_rtl)
+	if not is_new_best and prev_best.score > 0:
+		var best_rtl = RichTextLabel.new()
+		best_rtl.bbcode_enabled = true
+		best_rtl.fit_content = true
+		best_rtl.scroll_active = false
+		best_rtl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		best_rtl.custom_minimum_size = Vector2(VIEWPORT_WIDTH, 40)
+		best_rtl.position = Vector2(0, VIEWPORT_HEIGHT / 2.0 + 100.0)
+		best_rtl.add_theme_font_override("normal_font", bungee)
+		best_rtl.add_theme_font_size_override("normal_font_size", 28)
+		best_rtl.add_theme_color_override("default_color", Color(0.0, 0.85, 1.0, 0.8))
+		best_rtl.push_paragraph(HORIZONTAL_ALIGNMENT_CENTER)
+		best_rtl.add_text("BEST:  %dm  ×  %d  " % [prev_best.distance, prev_best.plankton])
+		best_rtl.add_image(plankton_atlas, 28, 28)
+		best_rtl.add_text("  =  %d" % [prev_best.score])
+		best_rtl.pop()
+		hud.add_child(best_rtl)
 
 func _process_death(delta: float):
 	_death_velocity += GRAVITY * delta
@@ -619,38 +614,3 @@ func restart_game():
 		tracker.save_if_high_score()
 	get_tree().change_scene_to_file("res://main.tscn")
 
-func _process_noclip(delta: float):
-	energy = 1.0
-	_time += delta
-	_update_energy_bar(delta)
-	_update_light_scale()
-
-	var dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
-	velocity = dir * 600.0
-	move_and_slide()
-
-	if global_position.y < highest_y:
-		highest_y = global_position.y
-
-	camera.position.x = camera_start_x - global_position.x
-	camera.position.y = min(0.0, highest_y - global_position.y)
-
-func _debug_teleport(metres: float):
-	var new_y = global_position.y - metres * 50.0
-	global_position.y = new_y
-	highest_y = minf(highest_y, new_y)
-	velocity = Vector2.ZERO
-
-func _toggle_noclip():
-	_debug_noclip = not _debug_noclip
-	velocity = Vector2.ZERO
-	if not _debug_label:
-		var hud = get_node_or_null("/root/World/HUD")
-		if hud:
-			_debug_label = Label.new()
-			_debug_label.add_theme_color_override("font_color", Color(1, 1, 0, 0.85))
-			_debug_label.add_theme_font_size_override("font_size", 20)
-			_debug_label.position = Vector2(12, 12)
-			hud.add_child(_debug_label)
-	if _debug_label:
-		_debug_label.text = "DEBUG: noclip ON  |  F2 = +100m  |  F3 = -100m" if _debug_noclip else ""
