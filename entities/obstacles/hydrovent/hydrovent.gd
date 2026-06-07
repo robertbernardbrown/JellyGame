@@ -24,11 +24,13 @@ var _player: Node = null
 var _trickle_timer: Timer
 var _surge_timer: Timer
 var _surge_end_timer: Timer
+var _bubble_sfx: AudioStreamPlayer
 
 func setup(on_left: bool):
 	_on_left = on_left
 
 func _ready():
+	add_to_group("Hydrovent")
 	_anim.flip_h = not _on_left
 	_anim.animation_finished.connect(_on_animation_finished)
 	_player = get_tree().get_first_node_in_group("Player")
@@ -48,6 +50,7 @@ func _ready():
 	_surge_end_timer.timeout.connect(_on_surge_end)
 	add_child(_surge_end_timer)
 
+	_setup_bubble_sfx()
 	_set_state(State.IDLE)
 	_surge_timer.start(randf_range(SURGE_INTERVAL_MIN, SURGE_INTERVAL_MAX))
 
@@ -109,6 +112,30 @@ func _spawn_bubble(vel: Vector2, size: int):
 	bubble.setup(vel, size)
 	get_parent().add_child(bubble)
 	bubble.global_position = _spawn_point.global_position
+
+func _setup_bubble_sfx() -> void:
+	var bus_name = "VentSFX"
+	if AudioServer.get_bus_index(bus_name) == -1:
+		AudioServer.add_bus()
+		var idx = AudioServer.get_bus_count() - 1
+		AudioServer.set_bus_name(idx, bus_name)
+		AudioServer.set_bus_send(idx, "SFX" if AudioServer.get_bus_index("SFX") != -1 else "Master")
+		var lpf = AudioEffectLowPassFilter.new()
+		lpf.cutoff_hz = 900.0
+		lpf.resonance = 0.4
+		AudioServer.add_bus_effect(idx, lpf)
+		var reverb = AudioEffectReverb.new()
+		reverb.room_size = 0.7
+		reverb.damping = 0.6
+		reverb.wet = 0.2
+		AudioServer.add_bus_effect(idx, reverb)
+	_bubble_sfx = AudioStreamPlayer.new()
+	_bubble_sfx.stream = load("res://audio/bubbles_vents.wav")
+	_bubble_sfx.volume_db = -3.0
+	_bubble_sfx.bus = bus_name
+	_bubble_sfx.finished.connect(func(): _bubble_sfx.play())
+	add_child(_bubble_sfx)
+	_bubble_sfx.play()
 
 func _tween_light(target: float, duration: float):
 	var tween = create_tween()

@@ -42,6 +42,8 @@ var _right_edge:  float
 var _tween:       Tween = null
 var _eye_tween:   Tween = null
 var _player:      Node  = null
+var _lunge_sfx:   AudioStreamPlayer
+var _lunge_sfx_id: int = 0
 
 var _time:          float = 0.0
 var _base_y:        float = 0.0
@@ -54,11 +56,13 @@ func setup(on_left: bool):
 	_on_left = on_left
 
 func _ready():
+	add_to_group("Eel")
 	anim.flip_h = _on_left
 	anim.play("Idle")
 	kill_col.disabled = false
 	eye_light.energy = 0.0
 	_player = get_tree().get_first_node_in_group("Player")
+	_setup_lunge_sfx()
 	_phase    = randf() * TAU
 	_freq_y   = randf_range(0.4, 0.75)
 	_radius_y = randf_range(7.0, 13.0)
@@ -148,6 +152,10 @@ func _set_state(new_state: State):
 			pass
 		State.LUNGING:
 			anim.play("LungeOpen")
+			_lunge_sfx_id += 1
+			var _lid = _lunge_sfx_id
+			_lunge_sfx.play(0.0)
+			get_tree().create_timer(1.5).timeout.connect(func(): if _lunge_sfx_id == _lid: _lunge_sfx.stop())
 		State.SNAPPING:
 			anim.play("Snap")
 		State.SNAP_HOLD:
@@ -159,6 +167,27 @@ func _set_state(new_state: State):
 			_tween_eye(EYE_ENERGY_MAX, EYE_GLOW_TIME)
 		State.LUNGE_RETREATING:
 			pass
+
+func _setup_lunge_sfx() -> void:
+	var bus_name = "EelSFX"
+	if AudioServer.get_bus_index(bus_name) == -1:
+		AudioServer.add_bus()
+		var idx = AudioServer.get_bus_count() - 1
+		AudioServer.set_bus_name(idx, bus_name)
+		AudioServer.set_bus_send(idx, "SFX" if AudioServer.get_bus_index("SFX") != -1 else "Master")
+		var lpf = AudioEffectLowPassFilter.new()
+		lpf.cutoff_hz = 1000.0
+		lpf.resonance = 0.5
+		AudioServer.add_bus_effect(idx, lpf)
+		var reverb = AudioEffectReverb.new()
+		reverb.room_size = 0.75
+		reverb.damping = 0.6
+		reverb.wet = 0.2
+		AudioServer.add_bus_effect(idx, reverb)
+	_lunge_sfx = AudioStreamPlayer.new()
+	_lunge_sfx.stream = load("res://audio/eel_lunge.wav")
+	_lunge_sfx.bus = bus_name
+	add_child(_lunge_sfx)
 
 func _tween_eye(target: float, duration: float):
 	if _eye_tween:

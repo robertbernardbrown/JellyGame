@@ -34,6 +34,11 @@ project/assembly_name="JellyUp"
 version_control/plugin_name="GitPlugin"
 version_control/autoload_on_startup=true
 
+[autoload]
+
+SettingsManager="*res://settings_manager.gd"
+MusicManager="*res://music_manager.gd"
+
 [rendering]
 
 textures/canvas_textures/default_texture_filter=0

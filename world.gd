@@ -9,9 +9,13 @@ const EEL_SPAWN_INTERVAL = 18.0
 const HYDROVENT_SPAWN_INTERVAL = 20.0
 const BRINE_POOL_SPAWN_INTERVAL = 18.0
 
+const TIER_DEPTH_M = 150
+const MAX_DIFFICULTY_TIER = 5
+const TIER_SPAWN_MULT: Array = [1.0, 0.85, 0.72, 0.62, 0.54, 0.48]
+
 # Adjust this to control the minimum darkness colour (deep blue = darker/moodier, lighter = more visible)
 const AMBIENT_FLOOR  = Color(0.02, 0.04, 0.18, 1.0)
-const AMBIENT_START  = AMBIENT_FLOOR
+const AMBIENT_START  = Color(0.55, 0.75, 0.95, 1.0)
 const AMBIENT_DARK   = Color(0.05, 0.09, 0.25, 1.0)
 const DARK_START_DEPTH = 12.0    # metres before darkening kicks in
 const DARK_FULL_DEPTH  = 28.0    # metres where max darkness is reached
@@ -21,6 +25,14 @@ var _bg: Node
 var _player: Node
 var _player_start_y: float
 var _peak_depth: float = 0.0
+var _difficulty_tier: int = 0
+var _wall_timer: Timer
+var _urchin_timer: Timer
+var _pufferfish_timer: Timer
+var _angler_timer: Timer
+var _eel_timer: Timer
+var _hydrovent_timer: Timer
+var _brine_pool_timer: Timer
 
 # Fixed x positions aligned with the centre of Layer 5's black side strips
 const URCHIN_LEFT_X  = 25.0
@@ -42,7 +54,7 @@ const EFFECTIVE_TILE_SIZE = 64.0
 const MIN_WALL_COLUMNS = 3
 const MAX_WALL_COLUMNS = 7
 
-func start_timer(spawn_interval, timer_func, one_shot):
+func start_timer(spawn_interval, timer_func, one_shot) -> Timer:
 	var new_timer = Timer.new()
 	add_child(new_timer)
 	new_timer.wait_time = spawn_interval
@@ -50,16 +62,17 @@ func start_timer(spawn_interval, timer_func, one_shot):
 	if one_shot:
 		new_timer.one_shot = true
 	new_timer.start()
+	return new_timer
 
 func _ready():
-	start_timer(WALL_SPAWN_INTERVAL, _on_WallSpawnTimer_timeout, false)
+	_wall_timer       = start_timer(WALL_SPAWN_INTERVAL, _on_WallSpawnTimer_timeout, false)
 	start_timer(PLANKTON_SPAWN_INTERVAL, _on_PlanktonSpawnTimer_timeout, true)
-	start_timer(URCHIN_SPAWN_INTERVAL, _on_UrchinSpawnTimer_timeout, false)
-	start_timer(PUFFERFISH_SPAWN_INTERVAL, _on_PufferfishSpawnTimer_timeout, false)
-	start_timer(ANGLERFISH_SPAWN_INTERVAL, _on_AnglerSpawnTimer_timeout, false)
-	start_timer(EEL_SPAWN_INTERVAL, _on_EelSpawnTimer_timeout, false)
-	start_timer(HYDROVENT_SPAWN_INTERVAL, _on_HydroventSpawnTimer_timeout, false)
-	start_timer(BRINE_POOL_SPAWN_INTERVAL, _on_BrinePoolSpawnTimer_timeout, false)
+	_urchin_timer     = start_timer(URCHIN_SPAWN_INTERVAL, _on_UrchinSpawnTimer_timeout, false)
+	_pufferfish_timer = start_timer(PUFFERFISH_SPAWN_INTERVAL, _on_PufferfishSpawnTimer_timeout, false)
+	_angler_timer     = start_timer(ANGLERFISH_SPAWN_INTERVAL, _on_AnglerSpawnTimer_timeout, false)
+	_eel_timer        = start_timer(EEL_SPAWN_INTERVAL, _on_EelSpawnTimer_timeout, false)
+	_hydrovent_timer  = start_timer(HYDROVENT_SPAWN_INTERVAL, _on_HydroventSpawnTimer_timeout, false)
+	_brine_pool_timer = start_timer(BRINE_POOL_SPAWN_INTERVAL, _on_BrinePoolSpawnTimer_timeout, false)
 	var score_tracker_instance = SCORE_TRACKER_SCENE.instantiate() as Node
 	add_child(score_tracker_instance)
 	_canvas_modulate = $CanvasModulate
@@ -69,17 +82,60 @@ func _ready():
 	if _player:
 		_player_start_y = _player.global_position.y
 	call_deferred("_spawn_starter_plankton")
+	call_deferred("_show_tutorial_if_needed")
+	MusicManager.set_gameplay_volume()
 
 func _process(_delta):
 	if not _player:
 		return
 	var depth = (_player_start_y - _player.global_position.y) / 50.0
 	_peak_depth = maxf(_peak_depth, depth)
+	var tier = clampi(int(_peak_depth / TIER_DEPTH_M), 0, MAX_DIFFICULTY_TIER)
+	if tier != _difficulty_tier:
+		_difficulty_tier = tier
+		_apply_difficulty_tier(tier)
 	var t = clamp((_peak_depth - DARK_START_DEPTH) / (DARK_FULL_DEPTH - DARK_START_DEPTH), 0.0, 1.0)
 	var ambient = AMBIENT_START.lerp(AMBIENT_DARK, t)
 	_canvas_modulate.color = ambient
 	if _bg:
 		_bg.set_ambient(ambient)
+
+func _apply_difficulty_tier(tier: int):
+	var m: float = TIER_SPAWN_MULT[tier]
+	_wall_timer.wait_time       = WALL_SPAWN_INTERVAL * m
+	_urchin_timer.wait_time     = URCHIN_SPAWN_INTERVAL * m
+	_pufferfish_timer.wait_time = PUFFERFISH_SPAWN_INTERVAL * m
+	_angler_timer.wait_time     = ANGLERFISH_SPAWN_INTERVAL * m
+	_eel_timer.wait_time        = EEL_SPAWN_INTERVAL * m
+	_hydrovent_timer.wait_time  = HYDROVENT_SPAWN_INTERVAL * m
+	_brine_pool_timer.wait_time = BRINE_POOL_SPAWN_INTERVAL * m
+
+	var bump: int = (1 if tier >= 2 else 0) + (1 if tier >= 4 else 0)
+	MAX_WALLS       = 4 + (1 if tier >= 2 else 0) + (1 if tier >= 5 else 0)
+	MAX_URCHINS     = 2 + (1 if tier >= 2 else 0) + (1 if tier >= 4 else 0)
+	MAX_PUFFERFISH  = 2 + (1 if tier >= 3 else 0)
+	MAX_EELS        = 2 + (1 if tier >= 3 else 0) + (1 if tier >= 5 else 0)
+	MAX_HYDROVENTS  = 4 + (1 if tier >= 2 else 0)
+	MAX_BRINE_POOLS = 2 + (1 if tier >= 4 else 0)
+	MAX_ANGLERFISH  = 2 if tier >= 3 else 1
+
+func _tutorial_save_path() -> String:
+	var free_swim = get_tree().get_meta("free_swim", false)
+	return "user://tutorial_seen_free_swim.save" if free_swim else "user://tutorial_seen.save"
+
+func _show_tutorial_if_needed():
+	var file = FileAccess.open(_tutorial_save_path(), FileAccess.READ)
+	if file:
+		var val = file.get_var()
+		file.close()
+		if val == true:
+			return
+	if not _player:
+		return
+	var hint = load("res://ui/tutorial_overlay.gd").new()
+	# Centre horizontally; sit below the player's start so it's visible on screen
+	hint.global_position = Vector2(360.0, _player_start_y + 210.0)
+	add_child(hint)
 
 func _spawn_starter_plankton():
 	var plankton = PLANKTON_SCENE.instantiate() as Node2D
@@ -96,6 +152,8 @@ func _on_PufferfishSpawnTimer_timeout():
 	spawn_pufferfish()
 
 func spawn_urchin():
+	if get_tree().get_nodes_in_group("Urchin").size() >= MAX_URCHINS:
+		return
 	var on_left = randi() % 2 == 0
 	var bounds = get_screen_bounds()
 	var urchin = URCHIN_SCENE.instantiate()
@@ -108,6 +166,8 @@ func _on_AnglerSpawnTimer_timeout():
 	spawn_anglerfish()
 
 func spawn_anglerfish():
+	if get_tree().get_nodes_in_group("Anglerfish").size() >= MAX_ANGLERFISH:
+		return
 	var bounds = get_screen_bounds()
 	var spawn_x = randf_range(bounds.left + 180.0, bounds.right - 180.0)
 	var angler = ANGLERFISH_SCENE.instantiate()
@@ -115,6 +175,8 @@ func spawn_anglerfish():
 	angler.global_position = Vector2(spawn_x, bounds.top - 50.0)
 
 func spawn_pufferfish():
+	if get_tree().get_nodes_in_group("Pufferfish").size() >= MAX_PUFFERFISH:
+		return
 	var bounds = get_screen_bounds()
 	var spawn_x = randf_range(bounds.left + 180.0, bounds.right - 180.0)
 	var pufferfish = PUFFERFISH_SCENE.instantiate()
@@ -154,7 +216,14 @@ func spawn_plankton():
 
 # Buffer added around each entity so they don't spawn touching
 const SPAWN_BUFFER = 40.0
-const MAX_PLANKTON = 4
+const MAX_PLANKTON  = 4
+var MAX_WALLS       = 4
+var MAX_URCHINS     = 2
+var MAX_PUFFERFISH  = 2
+var MAX_ANGLERFISH  = 1
+var MAX_EELS        = 2
+var MAX_HYDROVENTS  = 4
+var MAX_BRINE_POOLS = 2
 
 func overlaps_existing(pos: Vector2, size: Vector2) -> bool:
 	var rect = Rect2(pos - size / 2.0, size).grow(SPAWN_BUFFER)
@@ -190,6 +259,8 @@ var _next_wall_left: bool = true
 const PLAYER_RADIUS = 42.0  # matches CapsuleShape2D radius in player.tscn
 
 func spawn_wall():
+	if get_tree().get_nodes_in_group("Wall").size() >= MAX_WALLS:
+		return
 	var on_left = _next_wall_left
 	_next_wall_left = !_next_wall_left
 
@@ -240,6 +311,8 @@ func spawn_wall():
 	wall.global_position = spawn_pos
 
 func _on_BrinePoolSpawnTimer_timeout():
+	if get_tree().get_nodes_in_group("BrinePool").size() >= MAX_BRINE_POOLS:
+		return
 	var bounds = get_screen_bounds()
 	var spawn_x: float = randf_range(bounds.left + 160.0, bounds.right - 160.0)
 	var pool = BRINE_POOL_SCENE.instantiate()
@@ -253,6 +326,8 @@ func _on_HydroventSpawnTimer_timeout():
 	spawn_hydrovent()
 
 func spawn_hydrovent():
+	if get_tree().get_nodes_in_group("Hydrovent").size() >= MAX_HYDROVENTS:
+		return
 	_try_spawn_vent_side(true)
 	_try_spawn_vent_side(false)
 
@@ -274,6 +349,8 @@ func _try_spawn_vent_side(on_left: bool):
 	vent.global_position = Vector2(x, spawn_y)
 
 func spawn_eel():
+	if get_tree().get_nodes_in_group("Eel").size() >= MAX_EELS:
+		return
 	var bounds = get_screen_bounds()
 	var on_left = randi() % 2 == 0
 	var spawn_y := 0.0

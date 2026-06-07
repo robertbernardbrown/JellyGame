@@ -12,6 +12,7 @@ var _player: Node = null
 var _size: float = 1.0
 
 func _ready():
+	add_to_group("BrinePool")
 	_size = randf_range(0.5, 1.0)
 	($CollisionShape2D.shape as CircleShape2D).radius = COLLISION_RADIUS * _size
 	_player = get_tree().get_first_node_in_group("Player")

@@ -1,8 +1,9 @@
-[gd_scene load_steps=38 format=3 uid="uid://xkt8ckcktuo0"]
+[gd_scene load_steps=39 format=3 uid="uid://xkt8ckcktuo0"]
 
 [ext_resource type="Script" path="res://entities/player/player.gd" id="1_h0gt1"]
-[ext_resource type="AudioStream" path="res://audio/jelly_bubbles.wav" id="swim_snd"]
 [ext_resource type="Texture2D" uid="uid://dhu3a3u844xe8" path="res://assets/sprites/player/jelly_animations-Sheet.png" id="2_6pggy"]
+[ext_resource type="AudioStream" path="res://audio/jelly_swim_4.mp3" id="3_whoosh"]
+[ext_resource type="AudioStream" path="res://audio/scifi-warning.wav" id="4_warn"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_mi7ll"]
 radius = 42.0
@@ -288,7 +289,8 @@ texture = SubResource("GradientTexture2D_light")
 
 [node name="Camera2D" type="Camera2D" parent="."]
 
-[node name="SwimSound" type="AudioStreamPlayer" parent="."]
-stream = ExtResource("swim_snd")
-volume_db = 0.0
-bus = &"Master"
+[node name="SwimSFX" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("3_whoosh")
+
+[node name="WarningSFX" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("4_warn")

@@ -7,7 +7,7 @@ const TEXTURES = [
 ]
 const RADII = [8.0, 16.0, 28.0]
 const BASE_LIFETIMES = [6.0, 8.0, 10.0]
-const BUBBLE_PUSH_FORCE = 65.0
+const BUBBLE_PUSH_FORCE = 130.0
 const SIZE_PUSH_MULTIPLIERS = [0.4, 0.7, 1.0]
 
 var _velocity: Vector2
@@ -44,4 +44,7 @@ func _process(delta):
 
 func _on_body_entered(body):
 	if body.is_in_group("Player"):
-		body.velocity += _velocity.normalized() * _push_force
+		var push_dir = _velocity.normalized()
+		var perp = Vector2(-push_dir.y, push_dir.x) * (1.0 if randf() > 0.5 else -1.0)
+		var jostle = (perp * 0.8 + push_dir * 0.2).normalized()
+		body.velocity += jostle * _push_force

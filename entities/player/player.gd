@@ -3,7 +3,12 @@ extends CharacterBody2D
 @onready var anim: AnimatedSprite2D = $AnimatedSprite2D
 @onready var camera: Camera2D = $Camera2D
 @onready var _light: PointLight2D = $Light/LightTexture
-@onready var _swim_sound: AudioStreamPlayer = $SwimSound
+@onready var _swim_sfx: AudioStreamPlayer = $SwimSFX
+var _warning_sfx: AudioStreamPlayer
+var _warning_loop_id: int = 0
+var _plankton_sfx: AudioStreamPlayer
+var _plankton_sfx_id: int = 0
+var _splat_sfx: AudioStreamPlayer
 
 const MIN_PROPEL_SPEED = 280.0
 const MAX_PROPEL_SPEED = 670.0
@@ -21,8 +26,8 @@ const SIDE_MARGIN = 60.0  # Buffer past screen edge before death
 const FALL_MARGIN = 80.0  # How far below screen bottom before death
 const ENERGY_SWIM_COST_MIN = 0.02
 const ENERGY_SWIM_COST_MAX = 0.08
-const LIGHT_SCALE_MIN = 3.99
-const LIGHT_SCALE_MAX = 14.98
+const LIGHT_SCALE_MIN = 3.2
+const LIGHT_SCALE_MAX = 11.5
 const MIN_PULL_DISTANCE = 50.0   # pixels of drag before aim activates
 const PULL_FULL_DISTANCE = 320.0 # pixels of drag for pull_factor to reach 1.0
 
@@ -48,12 +53,20 @@ var current_touch_pos: Vector2 = Vector2.ZERO
 var _plankton_count: int = 0
 var _brine_pool_count: int = 0
 var _blink_time: float = 0.0
+var _in_tutorial: bool = false
+var _swim_sfx_id: int = 0
 
 const _BUBBLE_PUFF = preload("res://entities/player/bubble_puff.gd")
 
 const DEBUG_JUMP_METERS = 100.0
 var _debug_noclip: bool = false
 var _debug_label: Label = null
+
+func set_in_tutorial(value: bool):
+	_in_tutorial = value
+	if _in_tutorial:
+		velocity = Vector2.ZERO
+		anim.play('Float')
 
 func _ready():
 	camera_start_x = global_position.x
@@ -66,10 +79,124 @@ func _ready():
 	if not _free_swim:
 		_setup_energy_bar.call_deferred()
 	_setup_plankton_counter.call_deferred()
+	_setup_swim_sfx_bus()
+	_setup_warning_sfx()
+	_setup_plankton_sfx()
+	_setup_splat_sfx()
+
+func _setup_swim_sfx_bus() -> void:
+	var bus_name = "SwimSFX"
+	if AudioServer.get_bus_index(bus_name) == -1:
+		AudioServer.add_bus()
+		var idx = AudioServer.get_bus_count() - 1
+		AudioServer.set_bus_name(idx, bus_name)
+		AudioServer.set_bus_send(idx, "SFX")
+		var lpf = AudioEffectLowPassFilter.new()
+		lpf.cutoff_hz = 1100.0
+		lpf.resonance = 0.5
+		AudioServer.add_bus_effect(idx, lpf)
+		var reverb = AudioEffectReverb.new()
+		reverb.room_size = 0.75
+		reverb.damping = 0.6
+		reverb.wet = 0.1
+		AudioServer.add_bus_effect(idx, reverb)
+	var final_bus = bus_name if AudioServer.get_bus_index(bus_name) != -1 else "Master"
+	_swim_sfx.bus = final_bus
+	_swim_sfx.pitch_scale = 1.6
+	_swim_sfx.volume_db = -10.0
+
+func _setup_warning_sfx() -> void:
+	var bus_name = "WarningSFX"
+	if AudioServer.get_bus_index(bus_name) == -1:
+		AudioServer.add_bus()
+		var idx = AudioServer.get_bus_count() - 1
+		AudioServer.set_bus_name(idx, bus_name)
+		AudioServer.set_bus_send(idx, "SFX" if AudioServer.get_bus_index("SFX") != -1 else "Master")
+		var lpf = AudioEffectLowPassFilter.new()
+		lpf.cutoff_hz = 600.0
+		lpf.resonance = 0.3
+		AudioServer.add_bus_effect(idx, lpf)
+		var reverb = AudioEffectReverb.new()
+		reverb.room_size = 0.85
+		reverb.damping = 0.7
+		reverb.wet = 0.35
+		AudioServer.add_bus_effect(idx, reverb)
+	_warning_sfx = AudioStreamPlayer.new()
+	_warning_sfx.stream = load("res://audio/new_sonar.wav")
+	_warning_sfx.pitch_scale = 0.45
+	_warning_sfx.volume_db = -4.0
+	_warning_sfx.bus = bus_name
+	add_child(_warning_sfx)
+
+func _setup_plankton_sfx() -> void:
+	var bus_name = "PlanktonSFX"
+	if AudioServer.get_bus_index(bus_name) == -1:
+		AudioServer.add_bus()
+		var idx = AudioServer.get_bus_count() - 1
+		AudioServer.set_bus_name(idx, bus_name)
+		AudioServer.set_bus_send(idx, "SFX" if AudioServer.get_bus_index("SFX") != -1 else "Master")
+		var lpf = AudioEffectLowPassFilter.new()
+		lpf.cutoff_hz = 700.0
+		lpf.resonance = 0.5
+		AudioServer.add_bus_effect(idx, lpf)
+		var reverb = AudioEffectReverb.new()
+		reverb.room_size = 0.85
+		reverb.damping = 0.5
+		reverb.wet = 0.45
+		AudioServer.add_bus_effect(idx, reverb)
+	_plankton_sfx = AudioStreamPlayer.new()
+	_plankton_sfx.stream = load("res://audio/plankton.mp3")
+	_plankton_sfx.bus = bus_name
+	add_child(_plankton_sfx)
+
+func _setup_splat_sfx() -> void:
+	var bus_name = "SplatSFX"
+	if AudioServer.get_bus_index(bus_name) == -1:
+		AudioServer.add_bus()
+		var idx = AudioServer.get_bus_count() - 1
+		AudioServer.set_bus_name(idx, bus_name)
+		AudioServer.set_bus_send(idx, "SFX" if AudioServer.get_bus_index("SFX") != -1 else "Master")
+		var lpf = AudioEffectLowPassFilter.new()
+		lpf.cutoff_hz = 1000.0
+		lpf.resonance = 0.5
+		AudioServer.add_bus_effect(idx, lpf)
+		var reverb = AudioEffectReverb.new()
+		reverb.room_size = 0.75
+		reverb.damping = 0.6
+		reverb.wet = 0.2
+		AudioServer.add_bus_effect(idx, reverb)
+	_splat_sfx = AudioStreamPlayer.new()
+	_splat_sfx.stream = load("res://audio/splat.wav")
+	_splat_sfx.bus = bus_name
+	add_child(_splat_sfx)
+
+func _start_warning_loop() -> void:
+	_warning_loop_id += 1
+	var id = _warning_loop_id
+	_warning_sfx.play(0.0)
+	get_tree().create_timer(2.0).timeout.connect(func(): _on_warning_timer(id))
+
+func _on_warning_timer(id: int) -> void:
+	if id != _warning_loop_id:
+		return
+	_warning_loop_id += 1
+	var new_id = _warning_loop_id
+	_warning_sfx.play(0.0)
+	get_tree().create_timer(2.0).timeout.connect(func(): _on_warning_timer(new_id))
+
+func _stop_warning_loop() -> void:
+	_warning_loop_id += 1
+	_warning_sfx.stop()
 
 func _process(delta):
 	if _dying:
 		_process_death(delta)
+		return
+
+	if _in_tutorial:
+		velocity = Vector2.ZERO
+		_time += delta
+		_update_light_scale()
 		return
 
 	if _debug_noclip:
@@ -91,6 +218,12 @@ func _process(delta):
 	_light_bonus = lerpf(_light_bonus, _light_bonus_target, delta * 2.5)
 	_update_energy_bar(delta)
 	_update_light_scale()
+	if not _free_swim:
+		if energy < 0.35:
+			if not _warning_sfx.playing:
+				_start_warning_loop()
+		elif _warning_sfx.playing:
+			_stop_warning_loop()
 
 	if _flash_amount > 0.0:
 		_flash_amount = maxf(0.0, _flash_amount - delta * 4.0)
@@ -250,6 +383,13 @@ func _unhandled_input(event):
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if _dying:
 			return
+		if _in_tutorial:
+			_in_tutorial = false
+			var path = "user://tutorial_seen_free_swim.save" if _free_swim else "user://tutorial_seen.save"
+			var f = FileAccess.open(path, FileAccess.WRITE)
+			if f:
+				f.store_var(true)
+				f.close()
 		if event.pressed:
 			tap_position = get_global_mouse_position()
 			current_touch_pos = tap_position
@@ -260,9 +400,15 @@ func _unhandled_input(event):
 			var charge = _get_charge_percent()
 			var speed = lerp(MIN_PROPEL_SPEED, MAX_PROPEL_SPEED, charge)
 			velocity = _get_aim_direction() * speed
-			_swim_sound.pitch_scale = randf_range(0.85, 1.15)
-			_swim_sound.play()
 			_spawn_launch_bubbles(_get_aim_direction(), charge)
+			_swim_sfx_id += 1
+			var _sfx_id = _swim_sfx_id
+			_swim_sfx.pitch_scale = randf_range(4.0, 5.0)
+			_swim_sfx.volume_db = randf_range(-12.0, -8.0)
+			_swim_sfx.play(0.06)
+			var _pitch_tween = create_tween()
+			_pitch_tween.tween_property(_swim_sfx, "pitch_scale", randf_range(7.0, 8.5), 0.24)
+			get_tree().create_timer(0.24).timeout.connect(func(): if _swim_sfx_id == _sfx_id: _swim_sfx.stop())
 			if not _free_swim:
 				energy = maxf(0.0, energy - lerp(ENERGY_SWIM_COST_MIN, ENERGY_SWIM_COST_MAX, charge))
 				if energy <= 0.0:
@@ -278,6 +424,10 @@ func collect_plankton(amount: float):
 	restore_energy(amount)
 	_light_bonus_target = minf(1.0, _light_bonus_target + 0.18)
 	_plankton_count += 1
+	_plankton_sfx_id += 1
+	var _pid = _plankton_sfx_id
+	_plankton_sfx.play(0.02)
+	get_tree().create_timer(0.1).timeout.connect(func(): if _plankton_sfx_id == _pid: _plankton_sfx.stop())
 
 func _setup_energy_bar():
 	var hud = get_node_or_null("/root/World/HUD")
@@ -363,6 +513,8 @@ func _trigger_death():
 	if _dying:
 		return
 	_dying = true
+	_stop_warning_loop()
+	_splat_sfx.play()
 	is_pressing = false
 	velocity = Vector2.ZERO
 	_displayed_energy = 0.0
@@ -452,9 +604,13 @@ func _process_death(delta: float):
 
 func enter_brine_pool():
 	_brine_pool_count += 1
+	if _brine_pool_count == 1:
+		SettingsManager.set_brine_lpf(true)
 
 func exit_brine_pool():
 	_brine_pool_count = maxi(0, _brine_pool_count - 1)
+	if _brine_pool_count == 0:
+		SettingsManager.set_brine_lpf(false)
 
 func restart_game():
 	var tracker = get_node_or_null("/root/World/ScoreTracker")

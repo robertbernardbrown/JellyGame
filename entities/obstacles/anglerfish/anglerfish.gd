@@ -22,6 +22,8 @@ var _state: State = State.LURING
 var _player: Node = null
 var _origin: Vector2
 var _origin_set: bool = false
+var _lunge_sfx: AudioStreamPlayer
+var _lunge_sfx_id: int = 0
 var _time: float = 0.0
 var _phase: float
 var _freq_x: float
@@ -38,6 +40,7 @@ var _lure_radius_y: float
 var _lure_drift: Vector2 = Vector2.ZERO
 
 func _ready():
+	add_to_group("Anglerfish")
 	lure.position = LURE_OFFSET
 	body_spr.modulate.a = 0.0
 	eyes_spr.modulate.a = 0.0
@@ -46,6 +49,7 @@ func _ready():
 	body_spr.animation_finished.connect(_on_body_animation_finished)
 	lure.play("Idle")
 	_player = get_tree().get_first_node_in_group("Player")
+	_setup_lunge_sfx()
 	_phase = randf() * TAU
 	_freq_x = randf_range(0.3, 0.5)
 	_freq_y = randf_range(0.35, 0.55)
@@ -136,6 +140,10 @@ func _set_state(new_state: State):
 
 		State.MOUTH_SNAP:
 			body_spr.play("MouthSnap")
+			_lunge_sfx_id += 1
+			var _lid = _lunge_sfx_id
+			_lunge_sfx.play(0.0)
+			get_tree().create_timer(1.3).timeout.connect(func(): if _lunge_sfx_id == _lid: _lunge_sfx.stop())
 			_kill_tween()
 			_tween = create_tween()
 			_tween.tween_interval(1.0 / 18.0)
@@ -174,6 +182,27 @@ func _on_body_animation_finished():
 func _on_body_entered(body):
 	if body.is_in_group("Player"):
 		body._trigger_death()
+
+func _setup_lunge_sfx() -> void:
+	var bus_name = "AnglerSFX"
+	if AudioServer.get_bus_index(bus_name) == -1:
+		AudioServer.add_bus()
+		var idx = AudioServer.get_bus_count() - 1
+		AudioServer.set_bus_name(idx, bus_name)
+		AudioServer.set_bus_send(idx, "SFX" if AudioServer.get_bus_index("SFX") != -1 else "Master")
+		var lpf = AudioEffectLowPassFilter.new()
+		lpf.cutoff_hz = 1000.0
+		lpf.resonance = 0.5
+		AudioServer.add_bus_effect(idx, lpf)
+		var reverb = AudioEffectReverb.new()
+		reverb.room_size = 0.75
+		reverb.damping = 0.6
+		reverb.wet = 0.2
+		AudioServer.add_bus_effect(idx, reverb)
+	_lunge_sfx = AudioStreamPlayer.new()
+	_lunge_sfx.stream = load("res://audio/angler_lunge.mp3")
+	_lunge_sfx.bus = bus_name
+	add_child(_lunge_sfx)
 
 func _kill_tween():
 	if _tween:

@@ -11,6 +11,7 @@ func setup(on_left: bool):
 	_on_left = on_left
 
 func _ready():
+	add_to_group("Urchin")
 	anim.flip_h = not _on_left
 	anim.play("Roll")
 	_player = get_tree().get_first_node_in_group("Player")

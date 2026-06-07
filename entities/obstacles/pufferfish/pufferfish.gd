@@ -12,6 +12,7 @@ enum State { IDLE, PUFFING, PUFFED, DEFLATING }
 var _state: State = State.IDLE
 var _player: Node = null
 var _tween: Tween = null
+var _puff_sfx: AudioStreamPlayer
 
 var _origin: Vector2
 var _origin_set: bool = false
@@ -24,9 +25,11 @@ var _radius_y: float
 var _spin_speed: float
 
 func _ready():
+	add_to_group("Pufferfish")
 	_player = get_tree().get_first_node_in_group("Player")
 	anim.animation_finished.connect(_on_animation_finished)
 	anim.play("Idle")
+	_setup_puff_sfx()
 	_phase = randf() * TAU
 	_freq_x = randf_range(0.3, 0.5)
 	_freq_y = randf_range(0.35, 0.55)
@@ -65,17 +68,41 @@ func _process(delta):
 			if not near:
 				_set_state(State.DEFLATING)
 
+func _setup_puff_sfx() -> void:
+	var bus_name = "PuffSFX"
+	if AudioServer.get_bus_index(bus_name) == -1:
+		AudioServer.add_bus()
+		var idx = AudioServer.get_bus_count() - 1
+		AudioServer.set_bus_name(idx, bus_name)
+		AudioServer.set_bus_send(idx, "SFX" if AudioServer.get_bus_index("SFX") != -1 else "Master")
+		var lpf = AudioEffectLowPassFilter.new()
+		lpf.cutoff_hz = 1000.0
+		lpf.resonance = 0.5
+		AudioServer.add_bus_effect(idx, lpf)
+		var reverb = AudioEffectReverb.new()
+		reverb.room_size = 0.75
+		reverb.damping = 0.6
+		reverb.wet = 0.2
+		AudioServer.add_bus_effect(idx, reverb)
+	_puff_sfx = AudioStreamPlayer.new()
+	_puff_sfx.stream = load("res://audio/pufferfish.wav")
+	_puff_sfx.volume_db = -5.0
+	_puff_sfx.bus = bus_name
+	add_child(_puff_sfx)
+
 func _set_state(new_state: State):
 	_state = new_state
 	match new_state:
 		State.PUFFING:
 			anim.play("Puff")
 			_tween_radius(SMALL_RADIUS, LARGE_RADIUS)
+			_puff_sfx.play()
 		State.PUFFED:
 			anim.play("PuffedIdle")
 		State.DEFLATING:
 			anim.play_backwards("Puff")
 			_tween_radius(LARGE_RADIUS, SMALL_RADIUS)
+			_puff_sfx.stop()
 		State.IDLE:
 			anim.play("Idle")
 
