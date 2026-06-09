@@ -24,6 +24,7 @@ var _origin: Vector2
 var _origin_set: bool = false
 var _lunge_sfx: AudioStreamPlayer
 var _lunge_sfx_id: int = 0
+var _chomp_sfx: AudioStreamPlayer
 var _time: float = 0.0
 var _phase: float
 var _freq_x: float
@@ -50,6 +51,7 @@ func _ready():
 	lure.play("Idle")
 	_player = get_tree().get_first_node_in_group("Player")
 	_setup_lunge_sfx()
+	_setup_chomp_sfx()
 	_phase = randf() * TAU
 	_freq_x = randf_range(0.3, 0.5)
 	_freq_y = randf_range(0.35, 0.55)
@@ -143,6 +145,7 @@ func _set_state(new_state: State):
 			_lunge_sfx_id += 1
 			var _lid = _lunge_sfx_id
 			_lunge_sfx.play(0.0)
+			_chomp_sfx.play(0.0)
 			get_tree().create_timer(1.3).timeout.connect(func(): if _lunge_sfx_id == _lid: _lunge_sfx.stop())
 			_kill_tween()
 			_tween = create_tween()
@@ -179,7 +182,7 @@ func _on_body_animation_finished():
 			_tween.tween_interval(SNAP_RESET_PAUSE)
 			_tween.tween_callback(func(): _set_state(State.RETREATING))
 
-func _on_body_entered(body):
+func _on_body_entered(body, _s = null):
 	if body.is_in_group("Player"):
 		body._trigger_death()
 
@@ -200,10 +203,18 @@ func _setup_lunge_sfx() -> void:
 		reverb.wet = 0.2
 		AudioServer.add_bus_effect(idx, reverb)
 	_lunge_sfx = AudioStreamPlayer.new()
-	_lunge_sfx.stream = load("res://audio/angler_lunge.mp3")
-	_lunge_sfx.volume_db = -7.0
+	_lunge_sfx.stream = load("res://audio/eel_lunge.wav")
+	_lunge_sfx.volume_db = 0.0
 	_lunge_sfx.bus = bus_name
 	add_child(_lunge_sfx)
+
+func _setup_chomp_sfx() -> void:
+	_chomp_sfx = AudioStreamPlayer.new()
+	_chomp_sfx.stream = load("res://audio/chomp.wav")
+	_chomp_sfx.pitch_scale = 0.6
+	_chomp_sfx.volume_db = 0.0
+	_chomp_sfx.bus = "AnglerSFX"
+	add_child(_chomp_sfx)
 
 func _kill_tween():
 	if _tween:

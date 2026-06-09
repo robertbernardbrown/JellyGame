@@ -116,6 +116,6 @@ func _process(_delta):
 	if _player and global_position.y > _player.global_position.y + get_viewport_rect().size.y:
 		queue_free()
 
-func _on_body_entered(body):
+func _on_body_entered(body, _s = null):
 	if body.is_in_group("Player"):
 		body._trigger_death()

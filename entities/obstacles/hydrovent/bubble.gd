@@ -42,7 +42,7 @@ func _process(delta):
 	if _time >= _lifetime:
 		queue_free()
 
-func _on_body_entered(body):
+func _on_body_entered(body, _s = null):
 	if body.is_in_group("Player"):
 		var push_dir = _velocity.normalized()
 		var perp = Vector2(-push_dir.y, push_dir.x) * (1.0 if randf() > 0.5 else -1.0)

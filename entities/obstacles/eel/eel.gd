@@ -44,6 +44,7 @@ var _eye_tween:   Tween = null
 var _player:      Node  = null
 var _lunge_sfx:   AudioStreamPlayer
 var _lunge_sfx_id: int = 0
+var _chomp_sfx:   AudioStreamPlayer
 
 var _time:          float = 0.0
 var _base_y:        float = 0.0
@@ -63,6 +64,7 @@ func _ready():
 	eye_light.energy = 0.0
 	_player = get_tree().get_first_node_in_group("Player")
 	_setup_lunge_sfx()
+	_setup_chomp_sfx()
 	_phase    = randf() * TAU
 	_freq_y   = randf_range(0.4, 0.75)
 	_radius_y = randf_range(7.0, 13.0)
@@ -158,6 +160,7 @@ func _set_state(new_state: State):
 			get_tree().create_timer(1.5).timeout.connect(func(): if _lunge_sfx_id == _lid: _lunge_sfx.stop())
 		State.SNAPPING:
 			anim.play("Snap")
+			_chomp_sfx.play(0.0)
 		State.SNAP_HOLD:
 			anim.stop()
 			anim.frame = 1
@@ -186,9 +189,17 @@ func _setup_lunge_sfx() -> void:
 		AudioServer.add_bus_effect(idx, reverb)
 	_lunge_sfx = AudioStreamPlayer.new()
 	_lunge_sfx.stream = load("res://audio/eel_lunge.wav")
-	_lunge_sfx.volume_db = -7.0
+	_lunge_sfx.volume_db = 3.0
 	_lunge_sfx.bus = bus_name
 	add_child(_lunge_sfx)
+
+func _setup_chomp_sfx() -> void:
+	_chomp_sfx = AudioStreamPlayer.new()
+	_chomp_sfx.stream = load("res://audio/chomp.wav")
+	_chomp_sfx.pitch_scale = 0.6
+	_chomp_sfx.volume_db = 0.0
+	_chomp_sfx.bus = "EelSFX"
+	add_child(_chomp_sfx)
 
 func _tween_eye(target: float, duration: float):
 	if _eye_tween:
@@ -202,6 +213,6 @@ func _kill_tween():
 		_tween.kill()
 		_tween = null
 
-func _on_body_entered(body):
+func _on_body_entered(body, _s = null):
 	if body.is_in_group("Player"):
 		body._trigger_death()

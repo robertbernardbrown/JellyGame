@@ -120,7 +120,7 @@ func _setup_warning_sfx() -> void:
 	_warning_sfx = AudioStreamPlayer.new()
 	_warning_sfx.stream = load("res://audio/new_sonar.wav")
 	_warning_sfx.pitch_scale = 0.45
-	_warning_sfx.volume_db = -11.0
+	_warning_sfx.volume_db = -4.0
 	_warning_sfx.bus = bus_name
 	add_child(_warning_sfx)
 
@@ -613,4 +613,3 @@ func restart_game():
 		tracker.finalize_score(_plankton_count)
 		tracker.save_if_high_score()
 	get_tree().change_scene_to_file("res://main.tscn")
-

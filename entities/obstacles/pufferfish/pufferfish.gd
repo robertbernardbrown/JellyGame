@@ -86,7 +86,7 @@ func _setup_puff_sfx() -> void:
 		AudioServer.add_bus_effect(idx, reverb)
 	_puff_sfx = AudioStreamPlayer.new()
 	_puff_sfx.stream = load("res://audio/pufferfish.wav")
-	_puff_sfx.volume_db = -5.0
+	_puff_sfx.volume_db = 2.0
 	_puff_sfx.bus = bus_name
 	add_child(_puff_sfx)
 
@@ -122,6 +122,6 @@ func _on_animation_finished():
 		State.DEFLATING:
 			_set_state(State.IDLE)
 
-func _on_body_entered(body):
+func _on_body_entered(body, _s = null):
 	if body.is_in_group("Player"):
 		body._trigger_death()

@@ -43,11 +43,11 @@ func _process(delta):
 	if _player and global_position.y > _player.global_position.y + get_viewport_rect().size.y:
 		queue_free()
 
-func _on_body_entered(body):
+func _on_body_entered(body, _s = null):
 	if body.is_in_group("Player"):
 		var scoreTracker = get_node("/root/World/ScoreTracker")
 		scoreTracker.increment_score()
-		body.collect_plankton(0.15)
+		body.collect_plankton(0.18)
 		queue_free()
 
 func _on_area_entered(area):

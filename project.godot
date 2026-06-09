@@ -8,12 +8,25 @@
 
 config_version=5
 
+[animation]
+
+compatibility/default_parent_skeleton_in_mesh_instance_3d=true
+
+[audio]
+
+general/ios/session_category=2
+
 [application]
 
 config/name="JellyUp"
 run/main_scene="res://main.tscn"
-config/features=PackedStringArray("4.1", "Mobile")
+config/features=PackedStringArray("4.6", "Mobile")
 config/icon="res://icon.svg"
+
+[autoload]
+
+SettingsManager="*res://settings_manager.gd"
+MusicManager="*res://music_manager.gd"
 
 [display]
 
@@ -33,11 +46,6 @@ project/assembly_name="JellyUp"
 
 version_control/plugin_name="GitPlugin"
 version_control/autoload_on_startup=true
-
-[autoload]
-
-SettingsManager="*res://settings_manager.gd"
-MusicManager="*res://music_manager.gd"
 
 [rendering]
 

@@ -191,17 +191,17 @@ func _add_settings_button():
 	btn.add_theme_font_size_override("font_size", 32)
 	btn.add_theme_color_override("font_color", Color(0.45, 0.72, 1.0, 0.85))
 	btn.flat = true
-	btn.position = Vector2(VIEWPORT_WIDTH - 180.0, 24.0)
+	btn.position = Vector2(VIEWPORT_WIDTH - 180.0, 72.0)
 	btn.size = Vector2(160.0, 56.0)
 	btn.pressed.connect(func():
 		var overlay = load("res://ui/settings_overlay.gd").new()
 		get_tree().root.add_child(overlay))
 	add_child(btn)
 
-func _on_start_pressed():
+func _on_start_pressed(_p = null):
 	get_tree().set_meta("free_swim", false)
 	get_tree().change_scene_to_file("res://world.tscn")
 
-func _on_free_swim_pressed():
+func _on_free_swim_pressed(_p = null):
 	get_tree().set_meta("free_swim", true)
 	get_tree().change_scene_to_file("res://world.tscn")

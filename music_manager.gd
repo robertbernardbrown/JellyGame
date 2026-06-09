@@ -1,6 +1,6 @@
 extends Node
 
-const MUSIC = preload("res://audio/dire_dire_docks.mp3")
+const MUSIC = preload("res://audio/underwater_theme.mp3")
 const TITLE_VOLUME_DB    = -8.0
 const GAMEPLAY_VOLUME_DB = -8.0
 const FADE_DURATION      = 1.2
