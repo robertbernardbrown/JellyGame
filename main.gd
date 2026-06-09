@@ -95,7 +95,7 @@ func _process(delta):
 
 func _apply_theme():
 	$Title.add_theme_font_override("font", bungee_font)
-	$Title.add_theme_font_size_override("font_size", 120)
+	$Title.add_theme_font_size_override("font_size", 88)
 	$Title.add_theme_color_override("font_color", Color(0.0, 0.85, 1.0))
 	$Title.add_theme_color_override("font_shadow_color", Color(0.0, 0.3, 0.5, 0.6))
 	$Title.add_theme_constant_override("shadow_offset_x", 5)
