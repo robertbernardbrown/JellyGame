@@ -29,7 +29,7 @@ offset_left = 140.0
 offset_top = 790.0
 offset_right = 580.0
 offset_bottom = 910.0
-text = "Dive In"
+text = "Survival"
 
 [node name="Quit" type="Button" parent="."]
 offset_left = 140.0

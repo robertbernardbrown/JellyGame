@@ -9,7 +9,7 @@ const EEL_SPAWN_INTERVAL = 18.0
 const HYDROVENT_SPAWN_INTERVAL = 20.0
 const BRINE_POOL_SPAWN_INTERVAL = 18.0
 
-const TIER_DEPTH_M = 150
+const TIER_DEPTH_M = 100
 const MAX_DIFFICULTY_TIER = 5
 const TIER_SPAWN_MULT: Array = [1.0, 0.85, 0.72, 0.62, 0.54, 0.48]
 
@@ -112,8 +112,8 @@ func _apply_difficulty_tier(tier: int):
 
 	MAX_WALLS       = 4 + (1 if tier >= 2 else 0) + (1 if tier >= 5 else 0)
 	MAX_URCHINS     = 2 + (1 if tier >= 2 else 0) + (1 if tier >= 4 else 0)
-	MAX_PUFFERFISH  = 2 + (1 if tier >= 3 else 0)
-	MAX_EELS        = 2 + (1 if tier >= 3 else 0) + (1 if tier >= 5 else 0)
+	MAX_PUFFERFISH  = 2 + (1 if tier >= 3 else 0) + (1 if tier >= 4 else 0)
+	MAX_EELS        = 2 + (1 if tier >= 3 else 0) + (1 if tier >= 4 else 0) + (1 if tier >= 5 else 0)
 	MAX_HYDROVENTS  = 4 + (1 if tier >= 2 else 0)
 	MAX_BRINE_POOLS = 2 + (1 if tier >= 4 else 0)
 	MAX_ANGLERFISH  = 2 if tier >= 3 else 1

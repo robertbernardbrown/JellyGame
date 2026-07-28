@@ -11,7 +11,7 @@ var _plankton_sfx_id: int = 0
 var _splat_sfx: AudioStreamPlayer
 
 const MIN_PROPEL_SPEED = 280.0
-const MAX_PROPEL_SPEED = 670.0
+const MAX_PROPEL_SPEED = 820.0
 const MAX_CHARGE_TIME = 1.0     # Seconds to reach full charge
 const GRAVITY = 320.0
 const WATER_DRAG_X = 2.0
@@ -30,6 +30,9 @@ const LIGHT_SCALE_MIN = 3.2
 const LIGHT_SCALE_MAX = 11.5
 const MIN_PULL_DISTANCE = 50.0   # pixels of drag before aim activates
 const PULL_FULL_DISTANCE = 320.0 # pixels of drag for pull_factor to reach 1.0
+# UV.x position of the red line / left edge of the fillable bar region (just past plankton icon).
+# Tune this if the bar empties too far left or not far enough.
+const BAR_FILL_START = 0.072
 
 var _start_y: float = 0.0
 var tap_position: Vector2 = Vector2.ZERO
@@ -55,6 +58,7 @@ var _brine_pool_count: int = 0
 var _blink_time: float = 0.0
 var _in_tutorial: bool = false
 var _swim_sfx_id: int = 0
+var _waiting_for_first_launch: bool = true
 
 const _BUBBLE_PUFF = preload("res://entities/player/bubble_puff.gd")
 
@@ -69,7 +73,13 @@ func _ready():
 	highest_y = global_position.y
 	_start_y = global_position.y
 	var mat = ShaderMaterial.new()
-	mat.shader = load("res://entities/player/flash.gdshader")
+	mat.shader = load("res://entities/player/jelly_recolor.gdshader")
+	mat.set_shader_parameter("region_mask", load("res://assets/sprites/player/jelly_region_mask.png"))
+	var colors = CosmeticsManager.get_effective_colors()
+	mat.set_shader_parameter("top_color", colors.top)
+	mat.set_shader_parameter("dot_color", colors.dot)
+	mat.set_shader_parameter("tentacle_color", colors.tentacle)
+	mat.set_shader_parameter("custom_amount", 1.0)
 	anim.material = mat
 	_free_swim = get_tree().get_meta("free_swim", false)
 	if not _free_swim:
@@ -189,10 +199,15 @@ func _process(delta):
 		_process_death(delta)
 		return
 
-	if _in_tutorial:
+	if _in_tutorial or _waiting_for_first_launch:
 		velocity = Vector2.ZERO
 		_time += delta
 		_update_light_scale()
+		if is_pressing:
+			pulse_time += delta * 4.0
+		else:
+			pulse_time = 0.0
+		queue_redraw()
 		return
 
 	# Water drag — X always, Y only when moving upward (so gravity pull isn't canceled)
@@ -378,6 +393,7 @@ func _unhandled_input(event):
 			var charge = _get_charge_percent()
 			var speed = lerp(MIN_PROPEL_SPEED, MAX_PROPEL_SPEED, charge)
 			velocity = _get_aim_direction() * speed
+			_waiting_for_first_launch = false
 			_spawn_launch_bubbles(_get_aim_direction(), charge)
 			_swim_sfx_id += 1
 			var _sfx_id = _swim_sfx_id
@@ -412,23 +428,44 @@ func _setup_energy_bar():
 	if not hud:
 		return
 
+	var vh = get_viewport().get_visible_rect().size.y
+	var bottom_inset = 0.0
+	var platform = OS.get_name()
+	if platform == "iOS" or platform == "Android":
+		var screen_h = float(DisplayServer.screen_get_size().y)
+		var safe_area = DisplayServer.get_display_safe_area()
+		var bottom_inset_px = screen_h - safe_area.end.y
+		bottom_inset = bottom_inset_px * (vh / screen_h)
+	# Assets are 720×57 — display at native height so the art isn't stretched
+	var bar_h = 57.0
+	var bar_y = vh - bar_h - bottom_inset
+
+	# Bottom layer: always-visible empty (blue) bar
+	var empty_bar = TextureRect.new()
+	empty_bar.texture = load("res://assets/sprites/resource_meter/resource_meter_yellow_empty.png")
+	empty_bar.stretch_mode = TextureRect.STRETCH_SCALE
+	empty_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	empty_bar.size = Vector2(VIEWPORT_WIDTH, bar_h)
+	empty_bar.position = Vector2(0, bar_y)
+	hud.add_child(empty_bar)
+
+	# Top layer: yellow bar clipped from the right as energy depletes
 	var bar = TextureRect.new()
-	bar.texture = load("res://assets/sprites/resource_meter/resource_meter_pink.png")
-	bar.stretch_mode = TextureRect.STRETCH_KEEP
+	bar.texture = load("res://assets/sprites/resource_meter/resource_meter_yellow.png")
+	bar.stretch_mode = TextureRect.STRETCH_SCALE
 	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bar.size = Vector2(VIEWPORT_WIDTH, bar_h)
+	bar.position = Vector2(0, bar_y)
 
 	var mat = ShaderMaterial.new()
-	mat.shader = load("res://entities/player/energy_bar.gdshader")
+	mat.shader = load("res://entities/player/energy_bar_yellow.gdshader")
 	mat.set_shader_parameter("fill_amount", 1.0)
-	bar.stretch_mode = TextureRect.STRETCH_SCALE
-	bar.size = Vector2(VIEWPORT_WIDTH, 80)
+	mat.set_shader_parameter("fill_start", BAR_FILL_START)
 	bar.material = mat
 	_energy_bar_mat = mat
 	_energy_bar = bar
 
 	hud.add_child(bar)
-	var vh = get_viewport().get_visible_rect().size.y
-	bar.position = Vector2(0, vh - 72)
 
 
 func _setup_plankton_counter():
@@ -482,7 +519,7 @@ func _update_energy_bar(delta: float):
 	if energy < 0.35:
 		_blink_time += delta
 		var t = (sin(_blink_time * TAU * 1.5) + 1.0) * 0.5
-		_energy_bar_mat.set_shader_parameter("tint_color", Color(1.0 - t, 1.0, 1.0))
+		_energy_bar_mat.set_shader_parameter("tint_color", Color(1.0, 1.0, 1.0, lerp(0.15, 1.0, t)))
 	else:
 		_blink_time = 0.0
 		_energy_bar_mat.set_shader_parameter("tint_color", Color.WHITE)

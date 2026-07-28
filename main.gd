@@ -23,6 +23,8 @@ func _ready():
 	_load_high_score()
 	MusicManager.set_title_volume()
 	_add_settings_button()
+	_add_credits_button()
+	_add_customize_button()
 
 func _build_idle_frames() -> SpriteFrames:
 	var frames = SpriteFrames.new()
@@ -195,6 +197,34 @@ func _add_settings_button():
 	btn.size = Vector2(160.0, 56.0)
 	btn.pressed.connect(func():
 		var overlay = load("res://ui/settings_overlay.gd").new()
+		get_tree().root.add_child(overlay))
+	add_child(btn)
+
+func _add_credits_button():
+	var btn = Button.new()
+	btn.text = "Credits"
+	btn.add_theme_font_override("font", bungee_font)
+	btn.add_theme_font_size_override("font_size", 32)
+	btn.add_theme_color_override("font_color", Color(0.45, 0.72, 1.0, 0.85))
+	btn.flat = true
+	btn.position = Vector2(20.0, 72.0)
+	btn.size = Vector2(160.0, 56.0)
+	btn.pressed.connect(func():
+		var overlay = load("res://ui/credits_overlay.gd").new()
+		get_tree().root.add_child(overlay))
+	add_child(btn)
+
+func _add_customize_button():
+	var btn = Button.new()
+	btn.text = "Customize"
+	btn.add_theme_font_override("font", bungee_font)
+	btn.add_theme_font_size_override("font_size", 32)
+	btn.add_theme_color_override("font_color", Color(0.45, 0.72, 1.0, 0.85))
+	btn.flat = true
+	btn.position = Vector2((VIEWPORT_WIDTH - 200.0) / 2.0, 72.0)
+	btn.size = Vector2(200.0, 56.0)
+	btn.pressed.connect(func():
+		var overlay = load("res://ui/customize_overlay.gd").new()
 		get_tree().root.add_child(overlay))
 	add_child(btn)
 

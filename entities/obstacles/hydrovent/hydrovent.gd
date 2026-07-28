@@ -4,8 +4,8 @@ const TRICKLE_INTERVAL_MIN = 0.3
 const TRICKLE_INTERVAL_MAX = 0.9
 const SURGE_TRICKLE_INTERVAL_MIN = 0.15
 const SURGE_TRICKLE_INTERVAL_MAX = 0.4
-const SURGE_INTERVAL_MIN = 4.0
-const SURGE_INTERVAL_MAX = 10.0
+const SURGE_INTERVAL_MIN = 1.5
+const SURGE_INTERVAL_MAX = 5.0
 const SURGE_DURATION_MIN = 2.0
 const SURGE_DURATION_MAX = 4.0
 const LIGHT_SURGE_ENERGY = 1.2
@@ -133,7 +133,6 @@ func _setup_bubble_sfx() -> void:
 	_bubble_sfx.stream = load("res://audio/bubbles_vents.wav")
 	_bubble_sfx.volume_db = -3.0
 	_bubble_sfx.bus = bus_name
-	_bubble_sfx.finished.connect(func(): _bubble_sfx.play())
 	add_child(_bubble_sfx)
 	_bubble_sfx.play()
 
